@@ -163,7 +163,7 @@ class NotificationService {
   static Future<void> notifyStudentApproval(String studentName) async {
     await saveNotification(
       'تمت الموافقة على حسابك',
-      'مرحباً $studentName، تمت الموافقة على طلب تسجيلك في Gradify. يمكنك الآن تسجيل الدخول واستخدام النظام.',
+      'مرحباً $studentName، تمت الموافقة على طلب تسجيلك في GradPro. يمكنك الآن تسجيل الدخول واستخدام النظام.',
       'approval',
     );
   }
@@ -172,7 +172,7 @@ class NotificationService {
   static Future<void> notifyStudentRejection(String studentName, String reason) async {
     await saveNotification(
       'تم رفض طلب تسجيلك',
-      'عذراً $studentName، تم رفض طلب تسجيلك في Gradify. السبب: $reason',
+      'عذراً $studentName، تم رفض طلب تسجيلك في GradPro. السبب: $reason',
       'rejection',
     );
   }

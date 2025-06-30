@@ -28,6 +28,8 @@ import 'package:gradpro/providers/user_provider.dart';
 import 'package:gradpro/providers/student_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:gradpro/pages/welcome_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // import 'package:firebase_core/firebase_core.dart';
 
@@ -35,9 +37,11 @@ import 'package:gradpro/pages/welcome_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  // طباعة FCM Token مباشرة عند بدء التطبيق
+  String? token = await FirebaseMessaging.instance.getToken();
+  print('FCM Token (from main): ' + (token ?? 'null'));
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => StudentProvider()),
     ChangeNotifierProvider(create: (context) => UserProvider()),
@@ -53,6 +57,11 @@ Future<void> main() async {
     ChangeNotifierProvider(create: (context) => PdfProvider()),
     ChangeNotifierProvider(create: (context) => PdfViewerProvider()),
   ], child: const MyApp()));
+}
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // يمكنك معالجة الإشعار هنا
 }
 
 class MyApp extends StatelessWidget {
@@ -113,8 +122,33 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  @override
+  void initState() {
+    super.initState();
+    setupFCM();
+  }
+
+  void setupFCM() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+    await messaging.requestPermission();
+    String? token = await messaging.getToken();
+    print("FCM Token: $token");
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Received a message while in the foreground!');
+      print('Message data: \\${message.data}');
+      if (message.notification != null) {
+        print('Message also contained a notification: \\${message.notification}');
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
