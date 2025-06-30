@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "859747488545",
+    "project_id": "gradpro-64eee",
+    "storage_bucket": "gradpro-64eee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:859747488545:android:2631bf74c1e3cc62746460",
+        "android_client_info": {
+          "package_name": "com.example.grad_project_flutter_new"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAB4gtNLklxMkzByXKqwTdJ8nFxknkOrKA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
