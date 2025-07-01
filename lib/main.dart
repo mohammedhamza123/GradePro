@@ -26,22 +26,20 @@ import 'package:gradpro/providers/register_provider.dart';
 import 'package:gradpro/providers/teacher_provider.dart';
 import 'package:gradpro/providers/user_provider.dart';
 import 'package:gradpro/providers/student_provider.dart';
+import 'package:gradpro/services/firebase_notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:gradpro/pages/welcome_page.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 
 // import 'package:firebase_core/firebase_core.dart';
 
 // import 'firebase_options.dart';
+GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  // طباعة FCM Token مباشرة عند بدء التطبيق
-  String? token = await FirebaseMessaging.instance.getToken();
-  print('FCM Token (from main): ' + (token ?? 'null'));
+  NotificationService.instance.initialize(navigatorKey);
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => StudentProvider()),
     ChangeNotifierProvider(create: (context) => UserProvider()),
@@ -59,11 +57,6 @@ Future<void> main() async {
   ], child: const MyApp()));
 }
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  // يمكنك معالجة الإشعار هنا
-}
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -78,12 +71,12 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/student-register': (context) => const StudentRegistrationPage(),
         '/pending-approval': (context) => const PendingApprovalPage(
-          username: '',
-          email: '',
-          firstName: '',
-          lastName: '',
-          serialNumber: '',
-        ),
+              username: '',
+              email: '',
+              firstName: '',
+              lastName: '',
+              serialNumber: '',
+            ),
         '/notifications': (context) => const NotificationsPage(),
         '/student': (context) => const StudentPage(),
         '/settings': (context) => const SettingsPage(),
@@ -122,33 +115,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  @override
-  void initState() {
-    super.initState();
-    setupFCM();
-  }
-
-  void setupFCM() async {
-    FirebaseMessaging messaging = FirebaseMessaging.instance;
-    await messaging.requestPermission();
-    String? token = await messaging.getToken();
-    print("FCM Token: $token");
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Received a message while in the foreground!');
-      print('Message data: \\${message.data}');
-      if (message.notification != null) {
-        print('Message also contained a notification: \\${message.notification}');
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(

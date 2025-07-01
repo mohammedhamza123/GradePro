@@ -465,8 +465,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                       ),
                                     ),
                                     const SizedBox(height: 20),
+                                    //
                                     // Register Link
-                                    Container(
+                                   Center(child:  Container(
                                       padding: const EdgeInsets.all(16),
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.8),
@@ -509,6 +510,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                         ],
                                       ),
                                     ),
+                                   ),
                                     const SizedBox(height: 20),
                                   ],
                                 ),
@@ -521,25 +523,58 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   ),
                 ),
                 // Footer Section
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                    child: Image.asset(
-                      "assets/app-login-lower-background.png",
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // ...existing code...
+// Footer Section
+Container(
+  width: double.infinity,
+  height: 70,
+  decoration: const BoxDecoration(
+    borderRadius: BorderRadius.only(
+      topLeft: Radius.circular(30),
+      topRight: Radius.circular(30),
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black12,
+        blurRadius: 10,
+        offset: Offset(0, -2),
+      ),
+    ],
+  ),
+  child: Stack(
+    children: [
+      ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(30),
+          topRight: Radius.circular(30),
+        ),
+        child: Image.asset(
+          "assets/app-login-lower-background.png",
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: 70,
         ),
       ),
+      Container(
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+),
+// ...existing code...
+              
+            ),
+          ),
+        
+      
     );
   }
 }
