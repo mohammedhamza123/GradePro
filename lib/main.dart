@@ -36,8 +36,16 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  NotificationService.instance.initialize(navigatorKey);
+  
+  // Initialize Firebase with error handling
+  try {
+    await Firebase.initializeApp();
+    NotificationService.instance.initialize(navigatorKey);
+  } catch (e) {
+    // If Firebase fails to initialize, continue without it
+    print('Firebase initialization failed: $e');
+  }
+  
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => StudentProvider()),
     ChangeNotifierProvider(create: (context) => UserProvider()),
@@ -65,7 +73,6 @@ class MyApp extends StatelessWidget {
       title: 'ManagerApp',
       routes: {
         '/home': (context) => const HomePage(),
-        '/': (context) => const WelcomePage(),
         '/login': (context) => const LoginPage(),
         '/student-register': (context) => const StudentRegistrationPage(),
         '/pending-approval': (context) => const PendingApprovalPage(
@@ -97,10 +104,8 @@ class MyApp extends StatelessWidget {
         '/adminProjectList': (context) => const AdminProjectListPage(),
         '/adminProjectDelete': (context) => const AdminProjectDeletePage(),
         '/adminProjectAccept': (context) => const AdminProjectAcceptPage(),
-        '/adminProjectAddStudent': (context) =>
-            const AdminProjectAddStudentPage(),
-        '/adminProjectSetTeacher': (context) =>
-            const AdminProjectSetTeacherPage(),
+        '/adminProjectAddStudent': (context) => const AdminProjectAddStudentPage(),
+        '/adminProjectSetTeacher': (context) => const AdminProjectSetTeacherPage(),
         '/adminProjectEdit': (context) => const AdminProjectEditPage(),
       },
       theme: ThemeData(
@@ -108,7 +113,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff00577B)),
         useMaterial3: true,
       ),
-      // home:const LoginPage(),
+      home: const WelcomePage(),
     );
   }
 }

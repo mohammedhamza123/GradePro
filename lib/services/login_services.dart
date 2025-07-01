@@ -23,7 +23,7 @@ class PendingApprovalException implements Exception {
 Future<Map<String, dynamic>> checkStudentApprovalStatus(String username) async {
   try {
     final response = await http.get(
-      Uri.parse("http://10.0.2.2:8000/student/?user=$username"),
+      Uri.parse("https://easy0123.pythonanywhere.com/student/?user=$username"),
       headers: {
         "Content-Type": "application/json",
       },
@@ -81,7 +81,7 @@ Future<bool> login(String username, String password) async {
     }
     
     // Make direct HTTP call for token creation (no authentication required)
-    final url = Uri.parse("http://10.0.2.2:8000$CREATETOKEN");
+    final url = Uri.parse("https://easy0123.pythonanywhere.com$CREATETOKEN");
     final tokenBody = await http.post(
       url,
       headers: {
@@ -100,7 +100,7 @@ Future<bool> login(String username, String password) async {
       // Check if user is a student and if they are approved
       try {
         final userResponse = await http.get(
-          Uri.parse("http://10.0.2.2:8000$MYACCOUNT"),
+          Uri.parse("https://easy0123.pythonanywhere.com$MYACCOUNT"),
           headers: {
             "Authorization": "Bearer ${token.access}",
             "Content-Type": "application/json",
@@ -114,7 +114,7 @@ Future<bool> login(String username, String password) async {
             if (userData[0]['groups'][0] == 2) {
               // Check if student is approved
               final studentResponse = await http.get(
-                Uri.parse("http://10.0.2.2:8000/student/?user=${userData[0]['id']}"),
+                Uri.parse("https://easy0123.pythonanywhere.com/student/?user=${userData[0]['id']}"),
                 headers: {
                   "Authorization": "Bearer ${token.access}",
                   "Content-Type": "application/json",
@@ -175,7 +175,7 @@ Future<bool> refreshLoginService() async {
     
     try {
       // Make direct HTTP call for token refresh (no authentication required)
-      final url = Uri.parse("http://10.0.2.2:8000$REFRESHTOKEN");
+      final url = Uri.parse("https://easy0123.pythonanywhere.com$REFRESHTOKEN");
       final token = await http.post(
         url,
         headers: {

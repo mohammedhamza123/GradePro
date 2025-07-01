@@ -14,6 +14,6 @@ const String PROJECTDETAILS = "/projectDetails/";
 const String TEACHER = "/teacher/";
 const String USER = "/user/";
 const String REGISTER = "/register/";
-const String MYACCOUNT = "/myaccount/";
+const String MYACCOUNT = "/user/";
 const String ChangePassword = "/changePassword/";
 const String APIKEY = "/apikey/";
