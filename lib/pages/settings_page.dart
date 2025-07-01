@@ -146,10 +146,10 @@ class SettingsPage extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton(
-                              onPressed: () {
+                              onPressed: () async {
                                 provider.setGroup(0);
                                 provider.setUser(null);
-                                logout();
+                                await logout();
                                 // Navigator.pushReplacementNamed(
                                 //     context, "/");
                                 Navigator.pushReplacementNamed(context, '/');

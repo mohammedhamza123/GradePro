@@ -97,59 +97,81 @@ Future<bool> login(String username, String password) async {
       
       print("Response status: ${tokenBody.statusCode}");
       print("Response body: ${tokenBody.body}");
-    
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    try {
-      final token = newTokenFromJson(tokenBody.body);
-      await prefs.setString("refresh", token.refresh);
-      services.setToken(token.access);
       
-      // Check if user is a student and if they are approved
+      SharedPreferences prefs = await SharedPreferences.getInstance();
       try {
-        final userResponse = await http.get(
-          Uri.parse("https://easy0123.pythonanywhere.com$MYACCOUNT"),
-          headers: {
-            "Authorization": "Bearer ${token.access}",
-            "Content-Type": "application/json",
-          },
-        ).timeout(const Duration(seconds: 10));
+        final token = newTokenFromJson(tokenBody.body);
+        await prefs.setString("refresh", token.refresh);
+        services.setToken(token.access);
         
-        if (userResponse.statusCode == 200) {
-          final userData = jsonDecode(userResponse.body);
-          if (userData.isNotEmpty && userData[0]['groups'] != null && userData[0]['groups'].isNotEmpty) {
-            // Check if user is a student (group 2)
-            if (userData[0]['groups'][0] == 2) {
-              // Check if student is approved
-              final studentResponse = await http.get(
-                Uri.parse("https://easy0123.pythonanywhere.com/student/?user=${userData[0]['id']}"),
-                headers: {
-                  "Authorization": "Bearer ${token.access}",
-                  "Content-Type": "application/json",
-                },
-              ).timeout(const Duration(seconds: 10));
-              
-              if (studentResponse.statusCode == 403) {
-                // Student is not approved, remove token and throw exception
-                services.removeToken();
-                await prefs.remove("refresh");
-                throw PendingApprovalException(
-                  "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
-                );
+        // Check if user is a student and if they are approved
+        try {
+          final userResponse = await http.get(
+            Uri.parse("https://easy0123.pythonanywhere.com$MYACCOUNT"),
+            headers: {
+              "Authorization": "Bearer ${token.access}",
+              "Content-Type": "application/json",
+            },
+          ).timeout(const Duration(seconds: 10));
+          
+          if (userResponse.statusCode == 200) {
+            final userData = jsonDecode(userResponse.body);
+            if (userData.isNotEmpty && userData[0]['groups'] != null && userData[0]['groups'].isNotEmpty) {
+              // Check if user is a student (group 2)
+              if (userData[0]['groups'][0] == 2) {
+                // Check if student is approved
+                final studentResponse = await http.get(
+                  Uri.parse("https://easy0123.pythonanywhere.com/student/?user=${userData[0]['id']}"),
+                  headers: {
+                    "Authorization": "Bearer ${token.access}",
+                    "Content-Type": "application/json",
+                  },
+                ).timeout(const Duration(seconds: 10));
+                
+                if (studentResponse.statusCode == 403) {
+                  // Student is not approved, remove token and throw exception
+                  services.removeToken();
+                  await prefs.remove("refresh");
+                  throw PendingApprovalException(
+                    "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
+                  );
+                }
               }
             }
           }
+        } catch (e) {
+          if (e is PendingApprovalException) {
+            rethrow;
+          }
+          // If there's an error checking approval, assume it's not approved
+          services.removeToken();
+          await prefs.remove("refresh");
+          return false;
         }
+        
+        return true;
       } catch (e) {
+        print("Login error: $e");
         if (e is PendingApprovalException) {
           rethrow;
         }
-        // If there's an error checking approval, assume it's not approved
-        services.removeToken();
-        await prefs.remove("refresh");
-        return false;
+        if (e is TimeoutException) {
+          throw Exception("انتهت مهلة الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.");
+        }
+        // If token creation fails, check if it's a student with pending approval
+        if (int.tryParse(username) != null) {
+          // Likely a student login attempt
+          final approvalStatus = await checkStudentApprovalStatus(username);
+          if (approvalStatus['exists'] && !approvalStatus['approved']) {
+            // Student exists but not approved
+            throw PendingApprovalException(
+              "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
+              studentData: approvalStatus['student_data'],
+            );
+          }
+        }
+        throw Exception("فشل تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور.");
       }
-      
-      return true;
     } catch (e) {
       print("Login error: $e");
       if (e is PendingApprovalException) {
@@ -157,18 +179,6 @@ Future<bool> login(String username, String password) async {
       }
       if (e is TimeoutException) {
         throw Exception("انتهت مهلة الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.");
-      }
-      // If token creation fails, check if it's a student with pending approval
-      if (int.tryParse(username) != null) {
-        // Likely a student login attempt
-        final approvalStatus = await checkStudentApprovalStatus(username);
-        if (approvalStatus['exists'] && !approvalStatus['approved']) {
-          // Student exists but not approved
-          throw PendingApprovalException(
-            "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
-            studentData: approvalStatus['student_data'],
-          );
-        }
       }
       throw Exception("فشل تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور.");
     }

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'pending_approval_page.dart';
 
 import '../services/login_services.dart';
+import 'package:gradpro/pages/student_registration_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,7 +42,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     );
     _fadeController.forward();
     _slideController.forward();
-    refreshLogin();
+    _checkLoginStatus();
   }
 
   @override
@@ -51,17 +52,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> refreshLogin() async {
-    // try {
-    //   await FirebaseAuth.instance.signInWithEmailAndPassword(
-    //     email: "anotherapp@gmail.com",
-    //     password: "anotherapppassword",
-    //   );
-    // } on FirebaseAuthException catch (e) {
-    //   print('Failed with error code: ${e.code}');
-    //   print(e.message);
-    // }
-
+  Future<void> _checkLoginStatus() async {
     await Future.delayed(const Duration(seconds: 1));
 
     // Assuming the RefreshLoginService returns a boolean indicating the login status
