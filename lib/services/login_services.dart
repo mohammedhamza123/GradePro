@@ -68,28 +68,35 @@ Future<bool> login(String username, String password) async {
   if (services.isAuthorized()) {
     return true;
   } else {
-    // Check if it's a student login attempt first
-    if (int.tryParse(username) != null) {
-      final approvalStatus = await checkStudentApprovalStatus(username);
-      if (approvalStatus['exists'] && !approvalStatus['approved']) {
-        // Student exists but not approved - throw specific exception
-        throw PendingApprovalException(
-          "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
-          studentData: approvalStatus['student_data'],
-        );
+    try {
+      // Check if it's a student login attempt first
+      if (int.tryParse(username) != null) {
+        final approvalStatus = await checkStudentApprovalStatus(username);
+        if (approvalStatus['exists'] && !approvalStatus['approved']) {
+          // Student exists but not approved - throw specific exception
+          throw PendingApprovalException(
+            "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
+            studentData: approvalStatus['student_data'],
+          );
+        }
       }
-    }
-    
-    // Make direct HTTP call for token creation (no authentication required)
-    final url = Uri.parse("https://easy0123.pythonanywhere.com$CREATETOKEN");
-    final tokenBody = await http.post(
-      url,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({"username": username, "password": password}),
-      encoding: Encoding.getByName("utf-8"),
-    ).timeout(const Duration(seconds: 10));
+      
+      // Make direct HTTP call for token creation (no authentication required)
+      final url = Uri.parse("https://easy0123.pythonanywhere.com$CREATETOKEN");
+      print("Attempting login to: $url");
+      print("Username: $username");
+      
+      final tokenBody = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode({"username": username, "password": password}),
+        encoding: Encoding.getByName("utf-8"),
+      ).timeout(const Duration(seconds: 15));
+      
+      print("Response status: ${tokenBody.statusCode}");
+      print("Response body: ${tokenBody.body}");
     
     SharedPreferences prefs = await SharedPreferences.getInstance();
     try {
@@ -144,8 +151,12 @@ Future<bool> login(String username, String password) async {
       
       return true;
     } catch (e) {
+      print("Login error: $e");
       if (e is PendingApprovalException) {
         rethrow;
+      }
+      if (e is TimeoutException) {
+        throw Exception("انتهت مهلة الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.");
       }
       // If token creation fails, check if it's a student with pending approval
       if (int.tryParse(username) != null) {
@@ -159,7 +170,7 @@ Future<bool> login(String username, String password) async {
           );
         }
       }
-      return false;
+      throw Exception("فشل تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور.");
     }
   }
 }

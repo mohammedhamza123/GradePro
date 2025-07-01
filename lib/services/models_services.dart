@@ -309,7 +309,10 @@ Future<Requirement> patchRequirement(
 
 Future<User?> registerUser(Map<String, dynamic> user) async {
   // For registration, we don't need authentication, so we'll make a direct call
-  final url = Uri.parse("http://10.0.2.2:8000$REGISTER");
+  final url = Uri.parse("https://easy0123.pythonanywhere.com$REGISTER");
+  print("Attempting registration to: $url");
+  print("User data: ${jsonEncode(user)}");
+  
   final response = await http.post(
     url,
     headers: {
@@ -317,7 +320,10 @@ Future<User?> registerUser(Map<String, dynamic> user) async {
     },
     body: jsonEncode(user),
     encoding: Encoding.getByName("utf-8"),
-  );
+  ).timeout(const Duration(seconds: 15));
+  
+  print("Registration response status: ${response.statusCode}");
+  print("Registration response body: ${response.body}");
   final body = responseDecoder(response);
   if (response.statusCode != 201) {
     // تحسين رسائل الخطأ
@@ -489,11 +495,11 @@ Future<bool> checkStudentApprovalStatus(String username) async {
   try {
     // First, try to get user by username
     final userResponse = await http.get(
-      Uri.parse("http://10.0.2.2:8000$USER?username=$username"),
+      Uri.parse("https://easy0123.pythonanywhere.com$USER?username=$username"),
       headers: {
         "Content-Type": "application/json",
       },
-    );
+    ).timeout(const Duration(seconds: 10));
     
     if (userResponse.statusCode == 200) {
       final userData = jsonDecode(userResponse.body);
@@ -502,11 +508,11 @@ Future<bool> checkStudentApprovalStatus(String username) async {
         
         // Then check student status
         final studentResponse = await http.get(
-          Uri.parse("http://10.0.2.2:8000$STUDENT?user=$userId"),
+          Uri.parse("https://easy0123.pythonanywhere.com$STUDENT?user=$userId"),
           headers: {
             "Content-Type": "application/json",
           },
-        );
+        ).timeout(const Duration(seconds: 10));
         
         if (studentResponse.statusCode == 200) {
           final studentData = jsonDecode(studentResponse.body);
