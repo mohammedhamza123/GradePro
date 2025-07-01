@@ -30,10 +30,8 @@ import 'package:gradpro/services/firebase_notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:gradpro/pages/welcome_page.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'models/logging_state.dart';
 
-// import 'package:firebase_core/firebase_core.dart';
-
-// import 'firebase_options.dart';
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
@@ -121,26 +119,44 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, login, child) {
-        return FutureBuilder(
+        return FutureBuilder<Logging>(
           future: login.refreshLogin,
-          builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            if (snapshot.hasData || login.user != null) {
-              switch (login.group) {
-                case 2:
-                  return const StudentPage();
-                case 1:
-                  return const AdminPage();
-                case 3:
-                  return const TeacherPage();
-              }
+          builder: (BuildContext context, AsyncSnapshot<Logging> snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              // Still loading
+              return const Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text("جاري التحميل..."),
+                    ],
+                  ),
+                ),
+              );
             } else if (snapshot.hasError) {
-              return const Text("error");
+              // Error occurred - show login page instead of error
+              return const LoginPage();
+            } else if (snapshot.hasData) {
+              // Check the login state
+              switch (snapshot.data) {
+                case Logging.student:
+                  return const StudentPage();
+                case Logging.admin:
+                  return const AdminPage();
+                case Logging.teacher:
+                  return const TeacherPage();
+                case Logging.notUser:
+                case Logging.notType:
+                default:
+                  return const LoginPage();
+              }
+            } else {
+              // Fallback: show login
+              return const LoginPage();
             }
-            return const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
           },
         );
       },

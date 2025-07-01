@@ -57,45 +57,50 @@ class UserProvider extends ChangeNotifier {
   Future<Logging> get refreshLogin => _switchLogin();
 
   Future<void> loginUser(GlobalKey<FormState>? formKey) async {
-    if (formKey?.currentState != null) {
-      if (formKey!.currentState!.validate()) {
-        // Reset pending approval state
-        _isPendingApproval = false;
-        _pendingStudentData = null;
-        _loginError = false;
-        _errorMessage = "";
+    if (formKey?.currentState != null && formKey!.currentState!.validate()) {
+      // Reset states
+      _isPendingApproval = false;
+      _pendingStudentData = null;
+      _loginError = false;
+      _errorMessage = "";
+      _loggedIn = false;
+      
+      try {
+        final bool loggedIn = await login(
+            emailController.value.text, passwordController.value.text);
+        _loggedIn = loggedIn;
         
-        try {
-          final bool loggedIn = await login(
-              emailController.value.text, passwordController.value.text);
-          _loggedIn = loggedIn;
-          
-          if (loggedIn) {
-            final Logging s = await _switchLogin();
-            if (s == Logging.notUser) {
-              _loginError = true;
-              _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
-            } else {
-              _loginError = false;
-              _errorMessage = "";
-            }
-          }
-        } catch (e) {
-          if (e is PendingApprovalException) {
-            // Handle pending approval
-            _isPendingApproval = true;
-            _pendingStudentData = e.studentData;
-            _loginError = true;
-            _errorMessage = e.message;
-          } else {
-            // Handle other errors
+        if (loggedIn) {
+          final Logging loginState = await _switchLogin();
+          if (loginState == Logging.notUser) {
             _loginError = true;
             _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
+            _loggedIn = false;
+          } else {
+            _loginError = false;
+            _errorMessage = "";
           }
+        } else {
+          _loginError = true;
+          _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
+        }
+      } catch (e) {
+        if (e is PendingApprovalException) {
+          // Handle pending approval
+          _isPendingApproval = true;
+          _pendingStudentData = e.studentData;
+          _loginError = true;
+          _errorMessage = e.message;
+          _loggedIn = false;
+        } else {
+          // Handle other errors
+          _loginError = true;
+          _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
+          _loggedIn = false;
         }
       }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   void setUser(User? value) {
@@ -118,51 +123,60 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<Logging> _switchLogin() async {
-    if (_user == null) {
-      await _refreshToken();
-      return Logging.notUser;
-    }
-    if (_user != null) {
-      switch (_group) {
-        case 1:
-          return Logging.admin;
-        case 2:
-          try {
-            await _loadStudent();
-            if (_studentAccount != null) {
-              await _loadProject();
-              return Logging.student;
-            } else {
+    try {
+      if (_user == null) {
+        final refreshed = await _refreshToken();
+        if (!refreshed) {
+          return Logging.notUser;
+        }
+      }
+      
+      if (_user != null) {
+        switch (_group) {
+          case 1:
+            return Logging.admin;
+          case 2:
+            try {
+              await _loadStudent();
+              if (_studentAccount != null) {
+                await _loadProject();
+                return Logging.student;
+              } else {
+                _loginError = true;
+                return Logging.notUser;
+              }
+            } catch (e) {
               _loginError = true;
               return Logging.notUser;
             }
-          } catch (e) {
-            _loginError = true;
+          case 3:
+            return Logging.teacher;
+          case 0:
+          default:
             return Logging.notUser;
-          }
-        case 3:
-          return Logging.teacher;
-        case 0:
-          return Logging.notUser;
+        }
       }
+      return Logging.notUser;
+    } catch (e) {
+      _loginError = true;
+      return Logging.notUser;
     }
-    return Logging.notUser;
   }
 
   Future<bool> _refreshToken() async {
-    bool approved = await refreshLoginService();
-    if (approved) {
-      await _loadUser();
-      if (_user != null) {
-        if (_user!.groups.isNotEmpty) {
-          if (_user!.groups != []) {
-            setGroup(_user!.groups.first);
-            return true;
-          }
+    try {
+      bool approved = await refreshLoginService();
+      if (approved) {
+        await _loadUser();
+        if (_user != null && _user!.groups.isNotEmpty) {
+          setGroup(_user!.groups.first);
+          return true;
         }
       }
+      return false;
+    } catch (e) {
+      return false;
     }
-    return false;
   }
 
   String? passwordValidator(String? value) {
@@ -199,20 +213,39 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> _loadUser() async {
-    _user ??= await userServices.user;
-    notifyListeners();
+    try {
+      if (_user == null) {
+        _user = await userServices.user;
+        notifyListeners();
+      }
+    } catch (e) {
+      _user = null;
+      notifyListeners();
+    }
   }
 
   Future<void> _loadStudent() async {
-    if (_studentAccount == null) {
-      _studentAccount = await userServices.student;
+    try {
+      if (_studentAccount == null) {
+        _studentAccount = await userServices.student;
+        notifyListeners();
+      }
+    } catch (e) {
+      _studentAccount = null;
       notifyListeners();
     }
   }
 
   Future<void> _loadProject() async {
-    _studentProject ??= await userServices.project;
-    notifyListeners();
+    try {
+      if (_studentProject == null) {
+        _studentProject = await userServices.project;
+        notifyListeners();
+      }
+    } catch (e) {
+      _studentProject = null;
+      notifyListeners();
+    }
   }
 
   void setGroup(int group) {

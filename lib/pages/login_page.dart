@@ -383,9 +383,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                           setState(() {});
                                           try {
                                             await provider.loginUser(_formKey);
-                                            if (provider.loggedIn) {
+                                            
+                                            if (provider.loggedIn && !provider.loginError) {
                                               Navigator.pushNamed(context, "/home");
-                                              setState(() {});
                                             } else if (provider.isPendingApproval) {
                                               final studentData = provider.pendingStudentData;
                                               if (studentData != null) {
@@ -426,16 +426,17 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                             }
                                           } catch (error) {
                                             showDialog(
-                                                context: context,
-                                                builder: (BuildContext context) {
-                                              return LoginErrorDialog(
-                                                errorMessage: error.toString(),
-                                              );
-                                            });
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return LoginErrorDialog(
+                                                  errorMessage: error.toString(),
+                                                );
+                                              },
+                                            );
+                                          } finally {
+                                            provider.setLoginLoading(false);
                                             setState(() {});
                                           }
-                                          provider.setLoginLoading(false);
-                                          setState(() {});
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xff00577B),
