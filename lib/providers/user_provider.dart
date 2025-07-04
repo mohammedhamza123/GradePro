@@ -15,7 +15,9 @@ class UserProvider extends ChangeNotifier {
   bool invalidEmail = false;
   bool _loginError = false;
   bool _isLoginLoading = false;
-  bool isVisible = false;
+  bool _isVisible = false;
+  
+  bool get isVisible => _isVisible;
   int _group = 0;
   User? _user;
   Project? _studentProject;
@@ -65,18 +67,28 @@ class UserProvider extends ChangeNotifier {
       _loginError = false;
       _errorMessage = "";
       _loggedIn = false;
-      
+      _user = null;
+      _studentAccount = null;
+      _studentProject = null;
+      _group = 0;
+
       try {
         final bool loggedIn = await login(
             emailController.value.text, passwordController.value.text);
         _loggedIn = loggedIn;
         
         if (loggedIn) {
+          // Load user and set group after successful login
+          await _loadUser();
+          _group = _user?.groups.first ?? 0;
+          
           final Logging loginState = await _switchLogin();
           if (loginState == Logging.notUser) {
             _loginError = true;
             _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
             _loggedIn = false;
+            _user = null;
+            _group = 0;
           } else {
             _loginError = false;
             _errorMessage = "";
@@ -84,6 +96,8 @@ class UserProvider extends ChangeNotifier {
         } else {
           _loginError = true;
           _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
+          _user = null;
+          _group = 0;
         }
       } catch (e) {
         if (e is PendingApprovalException) {
@@ -93,11 +107,15 @@ class UserProvider extends ChangeNotifier {
           _loginError = true;
           _errorMessage = e.message;
           _loggedIn = false;
+          _user = null;
+          _group = 0;
         } else {
           // Handle other errors
           _loginError = true;
           _errorMessage = "أسم المستخدم او كلمة المرور خاطئة";
           _loggedIn = false;
+          _user = null;
+          _group = 0;
         }
       }
       notifyListeners();
@@ -125,14 +143,17 @@ class UserProvider extends ChangeNotifier {
 
   Future<Logging> _switchLogin() async {
     try {
+      // Always try to refresh token if user is null, regardless of group
       if (_user == null) {
         final refreshed = await _refreshToken();
         if (!refreshed) {
+          _group = 0; // Reset group if refresh fails
           return Logging.notUser;
         }
       }
-      
-      if (_user != null) {
+
+      // Now check if we have a valid user and group
+      if (_user != null && _group > 0) {
         switch (_group) {
           case 1:
             return Logging.admin;
@@ -166,11 +187,17 @@ class UserProvider extends ChangeNotifier {
 
   Future<bool> _refreshToken() async {
     try {
-      bool approved = await refreshLoginService();
+      // Add timeout to prevent hanging
+      bool approved = await refreshLoginService().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Token refresh timeout');
+        },
+      );
       if (approved) {
         await _loadUser();
         if (_user != null && _user!.groups.isNotEmpty) {
-          setGroup(_user!.groups.first);
+          _group = _user!.groups.first; // Set group directly without notifyListeners
           return true;
         }
       }
@@ -213,10 +240,20 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void togglePasswordVisibility() {
+    _isVisible = !_isVisible;
+    notifyListeners();
+  }
+
   Future<void> _loadUser() async {
     try {
       if (_user == null) {
-        _user = await userServices.user;
+        _user = await userServices.user.timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw Exception('User load timeout');
+          },
+        );
         notifyListeners();
       }
     } catch (e) {
@@ -228,7 +265,12 @@ class UserProvider extends ChangeNotifier {
   Future<void> _loadStudent() async {
     try {
       if (_studentAccount == null) {
-        _studentAccount = await userServices.student;
+        _studentAccount = await userServices.student.timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw Exception('Student load timeout');
+          },
+        );
         notifyListeners();
       }
     } catch (e) {
@@ -240,7 +282,12 @@ class UserProvider extends ChangeNotifier {
   Future<void> _loadProject() async {
     try {
       if (_studentProject == null) {
-        _studentProject = await userServices.project;
+        _studentProject = await userServices.project.timeout(
+          const Duration(seconds: 10),
+          onTimeout: () {
+            throw Exception('Project load timeout');
+          },
+        );
         notifyListeners();
       }
     } catch (e) {
@@ -277,6 +324,13 @@ class UserProvider extends ChangeNotifier {
   void logout() {
     _loggedIn = false;
     _user = null;
+    _studentAccount = null;
+    _studentProject = null;
     _group = 0;
+    _loginError = false;
+    _errorMessage = "";
+    _isPendingApproval = false;
+    _pendingStudentData = null;
+    notifyListeners();
   }
 }

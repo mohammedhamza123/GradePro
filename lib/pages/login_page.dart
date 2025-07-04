@@ -4,6 +4,7 @@ import '../pages/widgets/widget_dialog.dart';
 import '../providers/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'pending_approval_page.dart';
+import '../models/logging_state.dart';
 
 import '../services/login_services.dart';
 import 'package:gradpro/pages/student_registration_page.dart';
@@ -55,17 +56,29 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   Future<void> _checkLoginStatus() async {
     await Future.delayed(const Duration(seconds: 1));
 
-    // Assuming the RefreshLoginService returns a boolean indicating the login status
-    // final loginStatus = await Provider.of<UserProvider>(context,listen: false).;
-    final loginStatus = await refreshLoginService();
+    // Use the UserProvider to check login status instead of calling service directly
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    
+    try {
+      final loginState = await userProvider.refreshLogin;
+      
+      if (mounted) {
+        setState(() {
+          isLoggedIn = loginState != Logging.notUser && loginState != Logging.notType;
+        });
 
-    setState(() {
-      isLoggedIn = loginStatus;
-    });
-
-    // Navigate to the home route if the user is logged in
-    if (isLoggedIn) {
-      Navigator.pushReplacementNamed(context, '/home');
+        // Navigate to the home route if the user is logged in
+        if (isLoggedIn) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      }
+    } catch (e) {
+      // If there's an error, stay on login page
+      if (mounted) {
+        setState(() {
+          isLoggedIn = false;
+        });
+      }
     }
   }
 
@@ -348,8 +361,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                             left: 12,
                                             child: IconButton(
                                               onPressed: () {
-                                                provider.isVisible = !provider.isVisible;
-                                                setState(() {});
+                                                provider.togglePasswordVisibility();
                                               },
                                               icon: Icon(
                                                 provider.isVisible
@@ -376,7 +388,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                             await provider.loginUser(_formKey);
                                             
                                             if (provider.loggedIn && !provider.loginError) {
-                                              Navigator.pushNamed(context, "/home");
+                                              Navigator.pushReplacementNamed(context, "/home");
                                             } else if (provider.isPendingApproval) {
                                               final studentData = provider.pendingStudentData;
                                               if (studentData != null) {

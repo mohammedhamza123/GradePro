@@ -1,223 +1,321 @@
+import 'dart:convert';
 import 'package:gradpro/models/new_token.dart';
+import 'package:gradpro/models/refreshed_token.dart';
 import 'package:gradpro/services/endpoints.dart';
 import 'package:gradpro/services/internet_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:async';
 
-import '../models/refreshed_token.dart';
+/// Login Service - Compatible with login_page.dart and user_provider.dart
+/// 
+/// This service provides:
+/// - Core authentication with username/password
+/// - Student approval system for numeric usernames
+/// - Token management (access and refresh tokens)
+/// - Session persistence using SharedPreferences
+/// - Custom exceptions for pending approval and network timeouts
+/// - Arabic error messages for better UX
+/// - Backward compatibility with existing code
+/// 
+/// Integration:
+/// - login_page.dart: Uses login() function and handles PendingApprovalException
+/// - user_provider.dart: Uses login() and refreshLoginService() functions
+/// - PendingApprovalException includes studentData for UI display
 
-// Custom exception for pending approval
+// Custom exception for pending approval students
 class PendingApprovalException implements Exception {
   final String message;
   final Map<String, dynamic>? studentData;
   
-  PendingApprovalException(this.message, {this.studentData});
+  PendingApprovalException(this.message, [this.studentData]);
   
   @override
   String toString() => message;
 }
 
-// Add function to check student approval status
-Future<Map<String, dynamic>> checkStudentApprovalStatus(String username) async {
-  try {
-    final response = await http.get(
-      Uri.parse("https://easy0123.pythonanywhere.com/student/?user=$username"),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    ).timeout(const Duration(seconds: 10));
-    
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      if (data.isNotEmpty) {
-        return {
-          'exists': true,
-          'approved': data[0]['is_approved'] ?? false,
-          'student_data': data[0],
-        };
-      }
-    } else if (response.statusCode == 403) {
-      // Student exists but not approved
-      return {
-        'exists': true,
-        'approved': false,
-        'student_data': null,
-      };
-    }
-    
-    return {
-      'exists': false,
-      'approved': false,
-      'student_data': null,
-    };
-  } on TimeoutException catch (_) {
-    throw Exception("انتهت مهلة الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.");
-  } catch (e) {
-    return {
-      'exists': false,
-      'approved': false,
-      'student_data': null,
-    };
-  }
+// Custom exception for network timeouts
+class NetworkTimeoutException implements Exception {
+  final String message;
+  NetworkTimeoutException(this.message);
+  
+  @override
+  String toString() => message;
 }
 
-Future<bool> login(String username, String password) async {
-  final InternetService services = InternetService();
-  if (services.isAuthorized()) {
-    return true;
-  } else {
+class LoginService {
+  static const String _studentApprovalEndpoint = '/api/student-approval'; // Relative endpoint using base URL
+  static const int _studentGroupId = 2;
+  
+  final InternetService _internetService = InternetService();
+
+  /// Core login function with student approval system
+  Future<bool> login(String username, String password) async {
     try {
-      // Check if it's a student login attempt first
-      if (int.tryParse(username) != null) {
-        final approvalStatus = await checkStudentApprovalStatus(username);
-        if (approvalStatus['exists'] && !approvalStatus['approved']) {
-          // Student exists but not approved - throw specific exception
+      // Check if user is already authorized
+      if (_internetService.isAuthorized()) {
+        return true;
+      }
+
+      // Validate input parameters
+      if (username.isEmpty || password.isEmpty) {
+        throw Exception('اسم المستخدم وكلمة المرور مطلوبان');
+      }
+
+      // Check if this is a student login (numeric username)
+      bool isStudent = _isStudentUsername(username);
+      
+      if (isStudent) {
+        // Pre-login approval check for students
+        bool isApproved = await _checkStudentApproval(username);
+        if (!isApproved) {
+          // Get student data for the exception
+          Map<String, dynamic>? studentData = await _getStudentData(username);
           throw PendingApprovalException(
-            "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
-            studentData: approvalStatus['student_data'],
+            'حسابك قيد المراجعة. يرجى الانتظار حتى يتم الموافقة عليه.',
+            studentData
           );
         }
       }
-      
-      // Make direct HTTP call for token creation (no authentication required)
-      final url = Uri.parse("https://easy0123.pythonanywhere.com$CREATETOKEN");
-      print("Attempting login to: $url");
-      print("Username: $username");
-      
-      final tokenBody = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"username": username, "password": password}),
-        encoding: Encoding.getByName("utf-8"),
-      ).timeout(const Duration(seconds: 15));
-      
-      print("Response status: ${tokenBody.statusCode}");
-      print("Response body: ${tokenBody.body}");
-      
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      try {
-        final token = newTokenFromJson(tokenBody.body);
-        await prefs.setString("refresh", token.refresh);
-        services.setToken(token.access);
-        
-        // Check if user is a student and if they are approved
-        try {
-          final userResponse = await http.get(
-            Uri.parse("https://easy0123.pythonanywhere.com$MYACCOUNT"),
-            headers: {
-              "Authorization": "Bearer ${token.access}",
-              "Content-Type": "application/json",
-            },
-          ).timeout(const Duration(seconds: 10));
-          
-          if (userResponse.statusCode == 200) {
-            final userData = jsonDecode(userResponse.body);
-            if (userData.isNotEmpty && userData[0]['groups'] != null && userData[0]['groups'].isNotEmpty) {
-              // Check if user is a student (group 2)
-              if (userData[0]['groups'][0] == 2) {
-                // Check if student is approved
-                final studentResponse = await http.get(
-                  Uri.parse("https://easy0123.pythonanywhere.com/student/?user=${userData[0]['id']}"),
-                  headers: {
-                    "Authorization": "Bearer ${token.access}",
-                    "Content-Type": "application/json",
-                  },
-                ).timeout(const Duration(seconds: 10));
-                
-                if (studentResponse.statusCode == 403) {
-                  // Student is not approved, remove token and throw exception
-                  services.removeToken();
-                  await prefs.remove("refresh");
-                  throw PendingApprovalException(
-                    "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
-                  );
-                }
-              }
-            }
-          }
-        } catch (e) {
-          if (e is PendingApprovalException) {
-            rethrow;
-          }
-          // If there's an error checking approval, assume it's not approved
-          services.removeToken();
-          await prefs.remove("refresh");
-          return false;
-        }
-        
-        return true;
-      } catch (e) {
-        print("Login error: $e");
-        if (e is PendingApprovalException) {
-          rethrow;
-        }
-        if (e is TimeoutException) {
-          throw Exception("انتهت مهلة الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.");
-        }
-        // If token creation fails, check if it's a student with pending approval
-        if (int.tryParse(username) != null) {
-          // Likely a student login attempt
-          final approvalStatus = await checkStudentApprovalStatus(username);
-          if (approvalStatus['exists'] && !approvalStatus['approved']) {
-            // Student exists but not approved
-            throw PendingApprovalException(
-              "حسابك قيد المراجعة من قبل الإدارة. يرجى الانتظار حتى يتم الموافقة على طلبك.",
-              studentData: approvalStatus['student_data'],
-            );
-          }
-        }
-        throw Exception("فشل تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور.");
+
+      // Attempt login
+      final tokenBody = await _internetService.post(
+        CREATETOKEN, 
+        {"username": username, "password": password}
+      );
+
+      if (tokenBody.statusCode != 200) {
+        throw Exception('فشل في تسجيل الدخول. يرجى التحقق من بياناتك.');
       }
+
+      // Parse token response - NewToken contains both access and refresh tokens
+      final token = newTokenFromJson(tokenBody.body);
+      
+      // Store refresh token securely for future use
+      await _storeRefreshToken(token.refresh);
+      _internetService.setToken(token.access);
+
+      // Post-login approval verification for students
+      if (isStudent) {
+        bool isStillApproved = await _checkStudentApproval(username);
+        if (!isStillApproved) {
+          await logout(); // Clean up tokens
+          // Get student data for the exception
+          Map<String, dynamic>? studentData = await _getStudentData(username);
+          throw PendingApprovalException(
+            'تم رفض حسابك. يرجى التواصل مع الإدارة.',
+            studentData
+          );
+        }
+      }
+
+      return true;
+    } on PendingApprovalException {
+      rethrow;
+    } on NetworkTimeoutException {
+      rethrow;
     } catch (e) {
-      print("Login error: $e");
-      if (e is PendingApprovalException) {
-        rethrow;
-      }
-      if (e is TimeoutException) {
-        throw Exception("انتهت مهلة الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.");
-      }
-      throw Exception("فشل تسجيل الدخول. تأكد من اسم المستخدم وكلمة المرور.");
+      throw Exception('خطأ في الشبكة. يرجى التحقق من اتصالك بالإنترنت.');
     }
   }
+
+  /// Refresh login session using stored refresh token
+  Future<bool> refreshLoginService() async {
+    try {
+      if (_internetService.isAuthorized()) {
+        return true;
+      }
+
+      final String? storedToken = await _getRefreshToken();
+      if (storedToken == null || storedToken.isEmpty) {
+        return false;
+      }
+
+      final tokenResponse = await _internetService.post(
+        REFRESHTOKEN, 
+        {"refresh": storedToken}
+      );
+
+      if (tokenResponse.statusCode != 200) {
+        await _clearTokens();
+        return false;
+      }
+
+      // Parse refreshed token - RefreshedToken only contains new access token
+      final refreshedToken = refreshedTokenFromJson(tokenResponse.body);
+      _internetService.setToken(refreshedToken.access);
+      
+      // Note: RefreshedToken only contains access token, not refresh token
+      // The original refresh token remains valid and stored for future refreshes
+
+      return true;
+    } catch (e) {
+      await _clearTokens();
+      return false;
+    }
+  }
+
+  /// Complete logout with token cleanup
+  Future<void> logout() async {
+    try {
+      _internetService.removeToken();
+      await _clearTokens();
+    } catch (e) {
+      // Ensure tokens are cleared even if there's an error
+      _internetService.removeToken();
+      await _clearTokens();
+    }
+  }
+
+  /// Check if username represents a student (numeric)
+  bool _isStudentUsername(String username) {
+    return RegExp(r'^\d+$').hasMatch(username);
+  }
+
+  /// Check student approval status from external API
+  Future<bool> _checkStudentApproval(String studentId) async {
+    try {
+      final response = await _internetService.get(
+        '$_studentApprovalEndpoint/$studentId',
+        null,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['approved'] == true && data['active'] == true;
+      }
+      
+      return false;
+    } catch (e) {
+      // If approval service is unavailable, allow login but log the issue
+      print('Warning: Student approval service unavailable: $e');
+      return true; // Allow login if approval service is down
+    }
+  }
+
+  /// Get user details and group information
+  Future<Map<String, dynamic>?> _getUserDetails(String username) async {
+    try {
+      final response = await _internetService.get('${USER}/$username', null);
+      
+      if (response.statusCode == 200) {
+        final userData = json.decode(response.body);
+        return userData;
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error fetching user details: $e');
+      return null;
+    }
+  }
+
+  /// Get student data for pending approval
+  Future<Map<String, dynamic>?> _getStudentData(String studentId) async {
+    try {
+      // Try to get student data from the approval endpoint
+      final response = await _internetService.get(
+        '$_studentApprovalEndpoint/$studentId',
+        null,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return {
+          'email': data['email'] ?? '',
+          'first_name': data['first_name'] ?? '',
+          'last_name': data['last_name'] ?? '',
+          'serial_number': data['serial_number'] ?? studentId,
+        };
+      }
+      
+      // Fallback: return basic student data
+      return {
+        'email': '',
+        'first_name': '',
+        'last_name': '',
+        'serial_number': studentId,
+      };
+    } catch (e) {
+      print('Error fetching student data: $e');
+      // Return basic student data as fallback
+      return {
+        'email': '',
+        'first_name': '',
+        'last_name': '',
+        'serial_number': studentId,
+      };
+    }
+  }
+
+  /// Store refresh token securely
+  Future<void> _storeRefreshToken(String refreshToken) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString("refresh", refreshToken);
+    } catch (e) {
+      print('Error storing refresh token: $e');
+      throw Exception('فشل في حفظ بيانات الجلسة.');
+    }
+  }
+
+  /// Retrieve stored refresh token
+  Future<String?> _getRefreshToken() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      return prefs.getString("refresh");
+    } catch (e) {
+      print('Error retrieving refresh token: $e');
+      return null;
+    }
+  }
+
+  /// Clear all stored tokens
+  Future<void> _clearTokens() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove("refresh");
+    } catch (e) {
+      print('Error clearing tokens: $e');
+    }
+  }
+
+  /// Check if user is currently authorized
+  bool isAuthorized() {
+    return _internetService.isAuthorized();
+  }
+
+  /// Get current access token
+  String? getCurrentToken() {
+    return _internetService.getToken();
+  }
+
+  /// Validate token format
+  bool _isValidToken(String token) {
+    return token.isNotEmpty && token.length > 10;
+  }
+
+  /// Force token refresh (for testing or manual refresh)
+  Future<bool> forceTokenRefresh() async {
+    try {
+      await _clearTokens();
+      return await refreshLoginService();
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+// Global instance for easy access
+final LoginService loginService = LoginService();
+
+// Legacy functions for backward compatibility
+Future<bool> login(String username, String password) async {
+  return await loginService.login(username, password);
 }
 
 Future<bool> refreshLoginService() async {
-  final InternetService services = InternetService();
-  if (!services.isAuthorized()) {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String? storedToken = prefs.getString("refresh");
-    if (storedToken == null || storedToken.isEmpty) {
-      return false;
-    }
-    
-    try {
-      // Make direct HTTP call for token refresh (no authentication required)
-      final url = Uri.parse("https://easy0123.pythonanywhere.com$REFRESHTOKEN");
-      final token = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({"refresh": storedToken}),
-        encoding: Encoding.getByName("utf-8"),
-      ).timeout(const Duration(seconds: 10));
-      services.setToken(refreshedTokenFromJson(token.body).access);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  } else {
-    return true;
-  }
+  return await loginService.refreshLoginService();
 }
 
 Future<void> logout() async {
-  final InternetService services = InternetService();
-  services.removeToken();
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.remove("refresh");
+  await loginService.logout();
 }

@@ -36,7 +36,7 @@ GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize Firebase with error handling
   try {
     await Firebase.initializeApp();
@@ -45,7 +45,7 @@ Future<void> main() async {
     // If Firebase fails to initialize, continue without it
     print('Firebase initialization failed: $e');
   }
-  
+
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (context) => StudentProvider()),
     ChangeNotifierProvider(create: (context) => UserProvider()),
@@ -104,8 +104,10 @@ class MyApp extends StatelessWidget {
         '/adminProjectList': (context) => const AdminProjectListPage(),
         '/adminProjectDelete': (context) => const AdminProjectDeletePage(),
         '/adminProjectAccept': (context) => const AdminProjectAcceptPage(),
-        '/adminProjectAddStudent': (context) => const AdminProjectAddStudentPage(),
-        '/adminProjectSetTeacher': (context) => const AdminProjectSetTeacherPage(),
+        '/adminProjectAddStudent': (context) =>
+            const AdminProjectAddStudentPage(),
+        '/adminProjectSetTeacher': (context) =>
+            const AdminProjectSetTeacherPage(),
         '/adminProjectEdit': (context) => const AdminProjectEditPage(),
       },
       theme: ThemeData(
@@ -154,7 +156,9 @@ class HomePage extends StatelessWidget {
                 case Logging.teacher:
                   return const TeacherPage();
                 case Logging.notUser:
+                  return const LoginPage();
                 case Logging.notType:
+                  return const LoginPage();
                 default:
                   return const LoginPage();
               }

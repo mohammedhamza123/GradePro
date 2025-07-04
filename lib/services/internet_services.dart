@@ -6,9 +6,9 @@ import 'package:http/http.dart' as http;
 class InternetService {
   static final InternetService _internetService = InternetService._internal();
   //static const String _urlString = "http://10.0.2.2:8000";
-  // static const String _urlString = "https://easy0123.pythonanywhere.com";
+    static const String _urlString = "https://easy0123.pythonanywhere.com";
   //static const String _urlString = "http://127.0.0.1:8000";
-  static const String _urlString = "http://192.168.2.129:8000";
+  //static const String _urlString = "http://192.168.2.129:8000";
   String _token = "";
 
   // const username = "tahasuperuser";
@@ -146,6 +146,10 @@ class InternetService {
 
   void removeToken() {
     _token = "";
+  }
+
+  String? getToken() {
+    return _token.isNotEmpty ? _token : null;
   }
 
   String _addQueryParams(Map<String, dynamic> params, String url) {
