@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import '../services/notification_services.dart';
+import '../providers/register_provider.dart';
+import '../providers/user_provider.dart';
 import 'dart:async';
 
 class PendingApprovalPage extends StatefulWidget {
@@ -29,6 +32,7 @@ class _PendingApprovalPageState extends State<PendingApprovalPage>
   late Animation<double> _fadeAnimation;
   Timer? _statusCheckTimer;
   bool _isCheckingStatus = false;
+  String _serialNumber = '';
 
   @override
   void initState() {
@@ -48,8 +52,29 @@ class _PendingApprovalPageState extends State<PendingApprovalPage>
 
     _animationController.forward();
     
+    // تحميل السيريال نمبر من SharedPreferences
+    _loadSerialNumber();
+    
     // بدء فحص حالة الطالب في الوقت الفعلي
     _startStatusChecking();
+  }
+
+  Future<void> _loadSerialNumber() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id_${widget.username}');
+      
+      if (userId != null) {
+        final pendingSerial = await RegisterProvider.getPendingSerialNumber(userId);
+        if (pendingSerial != null && pendingSerial.isNotEmpty) {
+          setState(() {
+            _serialNumber = pendingSerial;
+          });
+        }
+      }
+    } catch (e) {
+      // Handle error silently
+    }
   }
 
   @override
@@ -80,6 +105,22 @@ class _PendingApprovalPageState extends State<PendingApprovalPage>
         // الطالب تمت الموافقة عليه
         _statusCheckTimer?.cancel();
         
+        // تحديث السيريال نمبر إذا كان محفوظاً
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final userId = prefs.getInt('user_id_${widget.username}');
+          
+          if (userId != null) {
+            final pendingSerial = await RegisterProvider.getPendingSerialNumber(userId);
+            if (pendingSerial != null && pendingSerial.isNotEmpty) {
+              // هنا يمكننا إضافة كود لتحديث السيريال نمبر في قاعدة البيانات
+              // عند الموافقة على الطالب
+            }
+          }
+        } catch (e) {
+          // Handle error silently
+        }
+        
         // إظهار رسالة نجاح
         if (mounted) {
           showDialog(
@@ -99,16 +140,51 @@ class _PendingApprovalPageState extends State<PendingApprovalPage>
                 ),
                 actions: [
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       Navigator.of(context).pop();
-                      // العودة لصفحة تسجيل الدخول
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/login',
-                        (route) => false,
-                      );
+                      
+                      // محاولة تسجيل الدخول تلقائياً
+                      try {
+                        final prefs = await SharedPreferences.getInstance();
+                        final password = prefs.getString('temp_password_${widget.username}');
+                        
+                        if (password != null) {
+                          // استخدام UserProvider لتسجيل الدخول التلقائي
+                          final userProvider = Provider.of<UserProvider>(context, listen: false);
+                          userProvider.emailController.text = widget.username;
+                          userProvider.passwordController.text = password;
+                          
+                          // تسجيل الدخول التلقائي
+                          await userProvider.loginUser(GlobalKey<FormState>());
+                          // إعادة تحميل بيانات المستخدم والطالب بعد القبول
+                          await userProvider.reloadUserAndStudent();
+                          // حذف كلمة المرور المؤقتة
+                          await prefs.remove('temp_password_${widget.username}');
+                          // التوجيه لصفحة البداية (سيتم توجيه الطالب لصفحة الطالب تلقائياً)
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/home',
+                            (route) => false,
+                          );
+                        } else {
+                          // إذا لم يكن هناك كلمة مرور محفوظة، العودة لصفحة تسجيل الدخول
+                          Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/login',
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        print('Auto-login error: $e');
+                        // في حالة الخطأ، العودة لصفحة تسجيل الدخول
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/login',
+                          (route) => false,
+                        );
+                      }
                     },
-                    child: const Text('تسجيل الدخول'),
+                    child: const Text('دخول النظام'),
                   ),
                 ],
               );
@@ -317,8 +393,8 @@ class _PendingApprovalPageState extends State<PendingApprovalPage>
                                 _buildInfoRow('الاسم:', '${widget.firstName} ${widget.lastName}'),
                                 _buildInfoRow('اسم المستخدم:', widget.username),
                                 _buildInfoRow('البريد الإلكتروني:', widget.email),
-                                if (widget.serialNumber.isNotEmpty)
-                                  _buildInfoRow('رقم القيد:', widget.serialNumber),
+                                if (_serialNumber.isNotEmpty)
+                                  _buildInfoRow('رقم القيد:', _serialNumber),
                               ],
                             ),
                           ),

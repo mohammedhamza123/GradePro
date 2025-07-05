@@ -2,12 +2,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:async';
+import 'endpoints.dart';
+import 'internet_services.dart';
+import '../models/student_list.dart';
+import '../models/project_list.dart';
 
 class NotificationService {
   static const String _notificationKey = 'notifications';
   static const String _lastCheckKey = 'last_notification_check';
   static Timer? _pollingTimer;
   static Function(List<Map<String, dynamic>>)? _onNewNotifications;
+  
+  final InternetService _internetService = InternetService();
   
   // حفظ إشعار جديد
   static Future<void> saveNotification(String title, String message, String type) async {
@@ -121,8 +127,21 @@ class NotificationService {
   // فحص حالة الطالب من الخادم
   static Future<Map<String, dynamic>> checkStudentStatus(String username) async {
     try {
+      // نحتاج للحصول على user ID أولاً
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getInt('user_id_$username');
+      
+      if (userId == null) {
+        return {
+          'exists': false,
+          'approved': false,
+          'student_data': null,
+        };
+      }
+      
+      // استخدام نفس endpoint مثل getStudent
       final response = await http.get(
-        Uri.parse("http://10.0.2.2:8000/student/?user=$username"),
+        Uri.parse("https://easy0123.pythonanywhere.com/student/?user=$userId"),
         headers: {
           "Content-Type": "application/json",
         },
@@ -130,11 +149,11 @@ class NotificationService {
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data.isNotEmpty) {
+        if (data['datum'] != null && data['datum'].isNotEmpty) {
           return {
             'exists': true,
-            'approved': data[0]['is_approved'] ?? false,
-            'student_data': data[0],
+            'approved': true, // إذا وصلنا هنا، فالطالب معتمد
+            'student_data': data['datum'][0],
           };
         }
       } else if (response.statusCode == 403) {
@@ -151,6 +170,7 @@ class NotificationService {
         'student_data': null,
       };
     } catch (e) {
+      print('Error checking student status: $e');
       return {
         'exists': false,
         'approved': false,
@@ -175,5 +195,162 @@ class NotificationService {
       'عذراً $studentName، تم رفض طلب تسجيلك في GradPro. السبب: $reason',
       'rejection',
     );
+  }
+  
+  // Get pending students
+  Future<List<Student>> getPendingStudents() async {
+    try {
+      final response = await _internetService.get('$STUDENT?is_approved=false', null);
+      final body = _decodeResponse(response);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(body);
+        if (data['datum'] != null) {
+          return (data['datum'] as List)
+              .map((studentData) => Student.fromJson(studentData))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error getting pending students: $e');
+      return [];
+    }
+  }
+  
+  // Get pending projects
+  Future<List<Project>> getPendingProjects() async {
+    try {
+      final response = await _internetService.get('$PROJECT?is_approved=false', null);
+      final body = _decodeResponse(response);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(body);
+        if (data['datum'] != null) {
+          return (data['datum'] as List)
+              .map((projectData) => Project.fromJson(projectData))
+              .toList();
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error getting pending projects: $e');
+      return [];
+    }
+  }
+  
+  // Approve student
+  Future<bool> approveStudent(int studentId) async {
+    try {
+      final response = await _internetService.patch('$STUDENT$studentId/', {
+        'is_approved': true,
+      });
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error approving student: $e');
+      return false;
+    }
+  }
+  
+  // Reject student
+  Future<bool> rejectStudent(int studentId, String reason) async {
+    try {
+      final response = await _internetService.patch('$STUDENT$studentId/', {
+        'is_approved': false,
+        'rejection_reason': reason,
+      });
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error rejecting student: $e');
+      return false;
+    }
+  }
+  
+  // Approve project
+  Future<bool> approveProject(int projectId) async {
+    try {
+      final response = await _internetService.patch('$PROJECT$projectId/', {
+        'is_approved': true,
+      });
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error approving project: $e');
+      return false;
+    }
+  }
+  
+  // Reject project
+  Future<bool> rejectProject(int projectId, String reason) async {
+    try {
+      final response = await _internetService.patch('$PROJECT$projectId/', {
+        'is_approved': false,
+        'rejection_reason': reason,
+      });
+      
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error rejecting project: $e');
+      return false;
+    }
+  }
+  
+  // Send real-time notifications
+  Future<void> sendStudentApprovalNotification(int studentId) async {
+    try {
+      await _internetService.post('/api/notifications/student-approved/', {
+        'student_id': studentId,
+        'message': 'تمت الموافقة على طلبك بنجاح!',
+        'type': 'student_approval',
+      });
+    } catch (e) {
+      print('Error sending student approval notification: $e');
+    }
+  }
+  
+  Future<void> sendStudentRejectionNotification(int studentId, String reason) async {
+    try {
+      await _internetService.post('/api/notifications/student-rejected/', {
+        'student_id': studentId,
+        'message': 'تم رفض طلبك: $reason',
+        'type': 'student_rejection',
+        'reason': reason,
+      });
+    } catch (e) {
+      print('Error sending student rejection notification: $e');
+    }
+  }
+  
+  Future<void> sendProjectApprovalNotification(int projectId) async {
+    try {
+      await _internetService.post('/api/notifications/project-approved/', {
+        'project_id': projectId,
+        'message': 'تمت الموافقة على مشروعك بنجاح!',
+        'type': 'project_approval',
+      });
+    } catch (e) {
+      print('Error sending project approval notification: $e');
+    }
+  }
+  
+  Future<void> sendProjectRejectionNotification(int projectId, String reason) async {
+    try {
+      await _internetService.post('/api/notifications/project-rejected/', {
+        'project_id': projectId,
+        'message': 'تم رفض مشروعك: $reason',
+        'type': 'project_rejection',
+        'reason': reason,
+      });
+    } catch (e) {
+      print('Error sending project rejection notification: $e');
+    }
+  }
+  
+  // Helper method to decode response
+  String _decodeResponse(http.Response response) {
+    List<int> bodyBytes = response.bodyBytes;
+    return utf8.decode(bodyBytes);
   }
 } 

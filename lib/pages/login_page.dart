@@ -56,6 +56,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   Future<void> _checkLoginStatus() async {
     await Future.delayed(const Duration(seconds: 1));
 
+    if (!mounted) return; // تحقق من أن الـ widget لا يزال موجود
+
     // Use the UserProvider to check login status instead of calling service directly
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     
@@ -387,34 +389,25 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                           try {
                                             await provider.loginUser(_formKey);
                                             
+                                            print('DEBUG: Login result - loggedIn: ${provider.loggedIn}, loginError: ${provider.loginError}, isPendingApproval: ${provider.isPendingApproval}');
                                             if (provider.loggedIn && !provider.loginError) {
                                               Navigator.pushReplacementNamed(context, "/home");
                                             } else if (provider.isPendingApproval) {
-                                              final studentData = provider.pendingStudentData;
-                                              if (studentData != null) {
-                                                Navigator.pushAndRemoveUntil(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                    builder: (context) => PendingApprovalPage(
-                                                      username: provider.emailController.text,
-                                                      email: studentData['email'] ?? '',
-                                                      firstName: studentData['first_name'] ?? '',
-                                                      lastName: studentData['last_name'] ?? '',
-                                                      serialNumber: studentData['serial_number'] ?? '',
-                                                    ),
+                                              // Handle student not approved - redirect to pending approval page
+                                              print('DEBUG: Redirecting to pending approval page');
+                                              Navigator.pushAndRemoveUntil(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => PendingApprovalPage(
+                                                    username: provider.emailController.text,
+                                                    email: provider.user?.email ?? '',
+                                                    firstName: provider.user?.firstName ?? '',
+                                                    lastName: provider.user?.lastName ?? '',
+                                                    serialNumber: '', // Will be loaded from SharedPreferences
                                                   ),
-                                                  (route) => false,
-                                                );
-                                              } else {
-                                                showDialog(
-                                                  context: context,
-                                                  builder: (BuildContext context) {
-                                                    return PendingApprovalDialog(
-                                                      username: provider.emailController.text,
-                                                    );
-                                                  },
-                                                );
-                                              }
+                                                ),
+                                                (route) => false,
+                                              );
                                             } else if (provider.loginError) {
                                               showDialog(
                                                 context: context,

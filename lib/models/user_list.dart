@@ -39,14 +39,28 @@ class User {
   String username;
   String? email;
 
-  factory User.fromJson(Map<dynamic, dynamic> json) => User(
-        lastName: json["last_name"],
-        id: json["id"],
-        firstName: json["first_name"],
-        username: json["username"],
-        groups: json["groups"],
-        email: json["email"],
-      );
+  factory User.fromJson(Map<dynamic, dynamic> json) {
+    final groups = json["groups"];
+    
+    // Ensure groups is a List<int>
+    List<int> groupsList;
+    if (groups is List) {
+      groupsList = groups.map((e) => int.tryParse(e.toString()) ?? 0).toList();
+    } else if (groups != null) {
+      groupsList = [int.tryParse(groups.toString()) ?? 0];
+    } else {
+      groupsList = [];
+    }
+    
+    return User(
+      lastName: json["last_name"],
+      id: json["id"],
+      firstName: json["first_name"],
+      username: json["username"],
+      groups: groupsList,
+      email: json["email"],
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         "last_name": lastName,

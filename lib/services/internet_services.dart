@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class InternetService {
   static final InternetService _internetService = InternetService._internal();
@@ -36,6 +37,9 @@ class InternetService {
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
+      print('DEBUG: GET request to $endpoint with token: ${_token.substring(0, 20)}...');
+    } else {
+      print('DEBUG: GET request to $endpoint without token');
     }
     
     return http.get(url, headers: headers);
@@ -51,7 +55,12 @@ class InternetService {
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
+      print('DEBUG: POST request to $endpoint with token: ${_token.substring(0, 20)}...');
+    } else {
+      print('DEBUG: POST request to $endpoint without token');
     }
+    
+    print('DEBUG: POST data: $data');
     
     return http.post(
       url,
@@ -141,10 +150,12 @@ class InternetService {
   }
 
   void setToken(String token) {
+    print('DEBUG: Setting token: ${token.substring(0, 20)}...');
     _token = token;
   }
 
   void removeToken() {
+    print('DEBUG: Removing token');
     _token = "";
   }
 
@@ -158,5 +169,17 @@ class InternetService {
       result += "$param=${params[param]}";
     }
     return result;
+  }
+
+  // تحميل التوكن من SharedPreferences
+  Future<void> loadTokenFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("access");
+    if (token != null && token.isNotEmpty) {
+      setToken(token);
+      print('DEBUG: Loaded access token from prefs');
+    } else {
+      print('DEBUG: No access token found in prefs');
+    }
   }
 }

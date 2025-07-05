@@ -8,6 +8,7 @@ import 'package:gradpro/pages/chat_page.dart';
 import 'package:gradpro/pages/login_page.dart';
 import 'package:gradpro/pages/notifications_page.dart';
 import 'package:gradpro/pages/pending_approval_page.dart';
+import 'package:gradpro/pages/real_time_notifications_page.dart';
 import 'package:gradpro/pages/settings_page.dart';
 import 'package:gradpro/pages/student_page.dart';
 import 'package:gradpro/pages/student_registration_page.dart';
@@ -20,6 +21,7 @@ import 'package:gradpro/providers/chat_provider.dart';
 import 'package:gradpro/providers/edit_project_provider.dart';
 import 'package:gradpro/providers/edit_student_provider.dart';
 import 'package:gradpro/providers/edit_teacher_provider.dart';
+import 'package:gradpro/providers/notification_provider.dart';
 import 'package:gradpro/providers/pdf_provider.dart';
 import 'package:gradpro/providers/pdf_viewer_provider.dart';
 import 'package:gradpro/providers/register_provider.dart';
@@ -60,6 +62,7 @@ Future<void> main() async {
     ChangeNotifierProvider(create: (context) => ChatProvider()),
     ChangeNotifierProvider(create: (context) => PdfProvider()),
     ChangeNotifierProvider(create: (context) => PdfViewerProvider()),
+    ChangeNotifierProvider(create: (context) => NotificationProvider()),
   ], child: const MyApp()));
 }
 
@@ -83,6 +86,7 @@ class MyApp extends StatelessWidget {
               serialNumber: '',
             ),
         '/notifications': (context) => const NotificationsPage(),
+        '/real-time-notifications': (context) => const RealTimeNotificationsPage(),
         '/student': (context) => const StudentPage(),
         '/settings': (context) => const SettingsPage(),
         '/chat': (context) => const ChatPage(),
@@ -126,6 +130,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, login, child) {
+
         return FutureBuilder<Logging>(
           future: login.refreshLogin,
           builder: (BuildContext context, AsyncSnapshot<Logging> snapshot) {
@@ -147,14 +152,14 @@ class HomePage extends StatelessWidget {
               // Error occurred - show login page instead of error
               return const LoginPage();
             } else if (snapshot.hasData) {
-              // Check the login state
+              // Check the login state and redirect to appropriate page
               switch (snapshot.data) {
                 case Logging.student:
-                  return const StudentPage();
+                  return const StudentPage(); // Student users (group 2)
                 case Logging.admin:
-                  return const AdminPage();
+                  return const AdminPage(); // Admin users (group 1)
                 case Logging.teacher:
-                  return const TeacherPage();
+                  return const TeacherPage(); // Teacher users (group 3)
                 case Logging.notUser:
                   return const LoginPage();
                 case Logging.notType:

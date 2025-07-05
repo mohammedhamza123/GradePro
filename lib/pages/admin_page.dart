@@ -1,90 +1,308 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:gradpro/providers/user_provider.dart';
+import 'package:gradpro/providers/notification_provider.dart';
+import 'package:gradpro/pages/pending_approval_page.dart';
+import 'package:gradpro/pages/real_time_notifications_page.dart';
 
 class AdminPage extends StatelessWidget {
   const AdminPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'لوحة التحكم',
-          style: TextStyle(
-            color: Color(0xFFF9F9F9),
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Color(0xff00577B),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.white),
-            tooltip: "الإعدادات",
-            onPressed: () {
-              Navigator.pushNamed(context, '/settings');
-            },
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              _buildSection(
-                context,
-                title: "الطلبة",
-                image: "assets/students-image-admin.png",
-                buttons: [
-                  _buildButton(context, "قائمة الطلبة", "/adminStudentList"),
-                  _buildButton(context, "إضافة طالب", "/adminStudentAdd"),
-                  _buildButton(context, "تعديل بيانات", "/adminStudentEdit"),
-                  _buildButton(context, "حذف طالب", "/adminStudentDelete"),
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        // تحقق من أن المستخدم له صلاحية أدمن
+        if (userProvider.group != 1) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "لا تملك صلاحية الوصول لهذه الصفحة",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                    child: const Text("العودة لصفحة تسجيل الدخول"),
+                  ),
                 ],
               ),
-              _buildSection(
-                context,
-                title: "الاساتذة",
-                image: "assets/teachers-image-admin.png",
-                buttons: [
-                  _buildButton(context, "قائمة الاساتذة", "/adminTeacherList"),
-                  _buildButton(context, "إضافة استاذ", "/adminTeacherAdd"),
-                  _buildButton(
-                      context, "تعديل بيانات استاذ", "/adminTeacherEdit"),
-                  _buildButton(context, "حذف استاذ", "/adminTeacherDelete"),
-                ],
+            ),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'لوحة التحكم',
+              style: TextStyle(
+                color: Color(0xFFF9F9F9),
               ),
-              _buildSection(
-                context,
-                title: "الممتحنين",
-                image: "assets/examiner-image-admin.png",
-                buttons: [
-                  _buildButton(
-                      context, "قائمة الممتحنين", "/adminExaminerList"),
-                  _buildButton(context, "إضافة ممتحن", "/adminExaminerAdd"),
-                  _buildButton(
-                      context, "تعديل بيانات ممتحن", "/adminExaminerEdit"),
-                  _buildButton(context, "حذف ممتحن", "/adminExaminerDelete"),
-                ],
+            ),
+            centerTitle: true,
+            backgroundColor: Color(0xff00577B),
+            actions: [
+              Consumer<NotificationProvider>(
+                builder: (context, notificationProvider, child) {
+                  return Stack(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.notifications, color: Colors.white),
+                        tooltip: "الإشعارات في الوقت الفعلي",
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RealTimeNotificationsPage(),
+                            ),
+                          );
+                        },
+                      ),
+                      if (notificationProvider.totalPendingCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              '${notificationProvider.totalPendingCount}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
-              _buildSection(
-                context,
-                title: "المشاريع",
-                image: "assets/project-image-admin.png",
-                buttons: [
-                  _buildButton(
-                      context, "الموافقة علي مقترح", "/adminProjectAccept"),
-                  _buildButton(context, "إضافة طالب الي مشروع",
-                      "/adminProjectAddStudent"),
-                  _buildButton(
-                      context, "تحديد مشرف لمشروع", "/adminProjectSetTeacher"),
-                  _buildButton(context, "أرشيف المشاريع", "/adminProjectList"),
-                  _buildButton(
-                      context, "تعديل بيانات مشروع", "/adminProjectEdit"),
-                  _buildButton(context, "حذف مشروع", "/adminProjectDelete"),
-                ],
+              IconButton(
+                icon: const Icon(Icons.settings, color: Colors.white),
+                tooltip: "الإعدادات",
+                onPressed: () {
+                  Navigator.pushNamed(context, '/settings');
+                },
               ),
             ],
           ),
+          body: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  _buildNotificationsSection(context),
+                  _buildSection(
+                    context,
+                    title: "الطلبة",
+                    image: "assets/students-image-admin.png",
+                    buttons: [
+                      _buildButton(context, "قائمة الطلبة", "/adminStudentList"),
+                      _buildButton(context, "إضافة طالب", "/adminStudentAdd"),
+                      _buildButton(context, "تعديل بيانات", "/adminStudentEdit"),
+                      _buildButton(context, "حذف طالب", "/adminStudentDelete"),
+                    ],
+                  ),
+                  _buildSection(
+                    context,
+                    title: "الاساتذة",
+                    image: "assets/teachers-image-admin.png",
+                    buttons: [
+                      _buildButton(context, "قائمة الاساتذة", "/adminTeacherList"),
+                      _buildButton(context, "إضافة استاذ", "/adminTeacherAdd"),
+                      _buildButton(context, "تعديل بيانات استاذ", "/adminTeacherEdit"),
+                      _buildButton(context, "حذف استاذ", "/adminTeacherDelete"),
+                    ],
+                  ),
+                  _buildSection(
+                    context,
+                    title: "الممتحنين",
+                    image: "assets/examiner-image-admin.png",
+                    buttons: [
+                      _buildButton(context, "قائمة الممتحنين", "/adminExaminerList"),
+                      _buildButton(context, "إضافة ممتحن", "/adminExaminerAdd"),
+                      _buildButton(context, "تعديل بيانات ممتحن", "/adminExaminerEdit"),
+                      _buildButton(context, "حذف ممتحن", "/adminExaminerDelete"),
+                    ],
+                  ),
+                  _buildSection(
+                    context,
+                    title: "المشاريع",
+                    image: "assets/project-image-admin.png",
+                    buttons: [
+                      _buildButton(context, "الموافقة علي مقترح", "/adminProjectAccept"),
+                      _buildButton(context, "إضافة طالب الي مشروع", "/adminProjectAddStudent"),
+                      _buildButton(context, "تحديد مشرف لمشروع", "/adminProjectSetTeacher"),
+                      _buildButton(context, "أرشيف المشاريع", "/adminProjectList"),
+                      _buildButton(context, "تعديل بيانات مشروع", "/adminProjectEdit"),
+                      _buildButton(context, "حذف مشروع", "/adminProjectDelete"),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationsSection(BuildContext context) {
+    return Consumer<NotificationProvider>(
+      builder: (context, notificationProvider, child) {
+        return Card(
+          elevation: 4,
+          margin: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff00577B),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_active,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      "الإشعارات في الوقت الفعلي",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueGrey,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (notificationProvider.totalPendingCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${notificationProvider.totalPendingCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildNotificationCard(
+                        context,
+                        "طلبات الطلاب",
+                        notificationProvider.pendingStudentsCount,
+                        Icons.person,
+                        Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildNotificationCard(
+                        context,
+                        "طلبات المشاريع",
+                        notificationProvider.pendingProjectsCount,
+                        Icons.assignment,
+                        Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RealTimeNotificationsPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.visibility),
+                    label: const Text('عرض جميع الطلبات'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff00577B),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationCard(
+    BuildContext context,
+    String title,
+    int count,
+    IconData icon,
+    Color color,
+  ) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 32),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$count',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );

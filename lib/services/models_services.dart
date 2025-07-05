@@ -20,6 +20,7 @@ import 'package:gradpro/services/endpoints.dart';
 import 'package:gradpro/services/internet_services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:convert' show base64Url;
 
 String responseDecoder(http.Response response) {
   List<int> bodyBytes = response.bodyBytes;
@@ -65,26 +66,191 @@ Future<ProjectList> getProjectList() async {
   return projectListFromJson(body);
 }
 
-Future<User> getMyAccount() async {
+Future<User> getMyAccount([String? expectedUsername]) async {
+  print('DEBUG: getMyAccount called with expected username: $expectedUsername');
   http.Response response = await services.get(MYACCOUNT, null);
+  print('DEBUG: getMyAccount response status: ${response.statusCode}');
+  print('DEBUG: getMyAccount response body: ${response.body}');
+  
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
   }
-  return User.fromJson(jsonDecode(body).first);
+  
+  final jsonData = jsonDecode(body);
+  print('DEBUG: getMyAccount jsonData: $jsonData');
+  
+  // Handle the case where API returns a list of users
+  if (jsonData is Map && jsonData.containsKey('datum')) {
+    final usersList = jsonData['datum'] as List;
+    print('DEBUG: getMyAccount usersList length: ${usersList.length}');
+    
+    if (usersList.isNotEmpty) {
+      User? foundUser;
+      
+      // Try to find user by expected username
+      if (expectedUsername != null) {
+        print('DEBUG: getMyAccount searching for username: $expectedUsername');
+        for (var userData in usersList) {
+          if (userData['username'] == expectedUsername) {
+            foundUser = User.fromJson(userData);
+            print('DEBUG: getMyAccount found user by username: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
+            break;
+          }
+        }
+      }
+      
+      if (foundUser == null) {
+        // Try to get username from token if not provided
+        String? tokenUsername = expectedUsername;
+        if (tokenUsername == null) {
+          tokenUsername = await _decodeUsernameFromToken();
+          print('DEBUG: getMyAccount got username from token: $tokenUsername');
+        }
+        
+        // Try to find user by token username
+        if (tokenUsername != null) {
+          print('DEBUG: getMyAccount searching for token username: $tokenUsername');
+          for (var userData in usersList) {
+            // Check if tokenUsername is a number (user_id) or string (username)
+            if (int.tryParse(tokenUsername) != null) {
+              // tokenUsername is a number, search by user_id
+              if (userData['id'].toString() == tokenUsername) {
+                foundUser = User.fromJson(userData);
+                print('DEBUG: getMyAccount found user by user_id: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
+                break;
+              }
+            } else {
+              // tokenUsername is a string, search by username
+              if (userData['username'] == tokenUsername) {
+                foundUser = User.fromJson(userData);
+                print('DEBUG: getMyAccount found user by username: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
+                break;
+              }
+            }
+          }
+        }
+        
+        // If still not found, fallback to first user
+        if (foundUser == null) {
+          final userData = usersList.first;
+          print('DEBUG: getMyAccount using first user (fallback): $userData');
+          foundUser = User.fromJson(userData);
+          print('DEBUG: getMyAccount parsed user: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
+        }
+      }
+      
+      return foundUser!;
+    } else {
+      throw Exception('No users found');
+    }
+  } else if (jsonData is List && jsonData.isNotEmpty) {
+    // Handle direct list response
+    final userData = jsonData.first;
+    print('DEBUG: getMyAccount first user data (list): $userData');
+    final user = User.fromJson(userData);
+    print('DEBUG: getMyAccount parsed user (list): ID: ${user.id}, Username: ${user.username}, Groups: ${user.groups}');
+    return user;
+  } else {
+    throw Exception('Invalid user data structure');
+  }
+}
+
+// Temporary helper function to get current username from token
+Future<String?> _getCurrentUsernameFromToken() async {
+  try {
+    // This is a hack - in a real app, the backend should decode the token
+    // and return the current user's information
+    final response = await services.get('/api/token/verify/', null);
+    print('DEBUG: Token verify response status: ${response.statusCode}');
+    print('DEBUG: Token verify response body: ${response.body}');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['username'];
+    }
+  } catch (e) {
+    print('DEBUG: Error getting username from token: $e');
+  }
+  return null;
+}
+
+// Temporary helper function to decode username from JWT token
+Future<String?> _decodeUsernameFromToken() async {
+  try {
+    // Get the current token
+    final token = services.getToken();
+    if (token == null) {
+      print('DEBUG: No token available for decoding');
+      return null;
+    }
+    
+    print('DEBUG: Attempting to decode token: ${token.substring(0, 50)}...');
+    
+    // JWT tokens have 3 parts separated by dots
+    final parts = token.split('.');
+    if (parts.length != 3) {
+      print('DEBUG: Invalid JWT token format');
+      return null;
+    }
+    
+    // Decode the payload (second part)
+    final payload = parts[1];
+    
+    // Add padding if needed (only if not already padded)
+    String paddedPayload = payload;
+    if (payload.length % 4 != 0) {
+      paddedPayload = payload + '=' * (4 - payload.length % 4);
+    }
+    
+    // Decode base64
+    final decodedBytes = base64Url.decode(paddedPayload);
+    final decodedString = utf8.decode(decodedBytes);
+    final payloadData = jsonDecode(decodedString);
+    
+    print('DEBUG: Decoded token payload: $payloadData');
+    
+    // Extract username from payload
+    final username = payloadData['username'] ?? payloadData['user_id'];
+    print('DEBUG: Extracted username from token: $username');
+    
+    return username?.toString();
+  } catch (e) {
+    print('DEBUG: Error decoding token: $e');
+    return null;
+  }
 }
 
 Future<Student?> getStudent(int? id) async {
+  print('DEBUG: getStudent called for user $id');
   http.Response response = await services.get(STUDENT, {"user": "$id"});
+  print('DEBUG: getStudent response status: ${response.statusCode}');
+  print('DEBUG: getStudent response body: ${response.body}');
+  
   if (response.statusCode == 403) {
-    // Student is not approved yet
-    return null;
+    print('DEBUG: Student not approved (403)');
+    // Student is not approved yet - throw exception instead of returning null
+    throw Exception('Student not approved yet');
   }
-  final body = responseDecoder(response);
+  
   if (response.statusCode != 200) {
+    print('DEBUG: Student error status: ${response.statusCode}');
     throw Exception('${response.statusCode}:${response.body}');
   }
-  return Student.fromJson(jsonDecode(body)["datum"].first);
+  
+  final body = responseDecoder(response);
+  final data = jsonDecode(body);
+  print('DEBUG: Student data: $data');
+  
+  if (data['datum'] == null || data['datum'].isEmpty) {
+    print('DEBUG: No student data found');
+    throw Exception('Student not approved yet');
+  }
+  
+  print('DEBUG: Student approved, returning student data');
+  print('DEBUG: Student ID: ${data["datum"].first["id"]}');
+  print('DEBUG: Student user: ${data["datum"].first["user"]}');
+  print('DEBUG: Student serialNumber: ${data["datum"].first["serialNumber"]}');
+  return Student.fromJson(data["datum"].first);
 }
 
 Future<StudentDetailsList> getStudentDetailsList() async {

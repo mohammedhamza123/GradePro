@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/models_services.dart';
 
@@ -59,11 +60,31 @@ class RegisterProvider extends ChangeNotifier {
       } else {
         final res = await registerUser(user);
         if (res != null) {
-          final std = await getStudent(res.id);
-          if (std != null) {
-            await patchStudent(
-                std.id, null, null, int.parse(serialNumber.text.trim()));
+          // Save serial number and user ID for later use when student is approved
+          if (serialNumber.text.trim().isNotEmpty) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('pending_serial_${res.id}', serialNumber.text.trim());
+            await prefs.setInt('user_id_${userName.text}', res.id);
           }
+          
+          // Save password temporarily for auto-login after approval
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('temp_password_${userName.text}', password.text);
+          
+          // Try to get student - this might fail if student is not approved yet
+          try {
+            final std = await getStudent(res.id);
+            if (std != null) {
+              // If student is already approved, update serial number immediately
+              if (serialNumber.text.trim().isNotEmpty) {
+                await patchStudent(
+                    std.id, null, null, int.parse(serialNumber.text.trim()));
+              }
+            }
+          } catch (e) {
+            // Student is not approved yet - this is expected for new registrations
+          }
+          // If student is not approved yet, serial number will be set after approval
         }
       }
       
@@ -76,7 +97,7 @@ class RegisterProvider extends ChangeNotifier {
       firstName.text = "";
       serialNumber.text = "";
       _isLoading = false;
-      _success = "تم التسجيل بنجاح";
+      _success = "تم التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة قبل تفعيل الحساب.";
       _error = "";
       _canRegister = false;
       notifyListeners();
@@ -179,5 +200,17 @@ class RegisterProvider extends ChangeNotifier {
       return 'يرجي ادخال اسم';
     }
     return null;
+  }
+
+  // دالة لاسترجاع السيريال نمبر المحفوظ
+  static Future<String?> getPendingSerialNumber(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('pending_serial_$userId');
+  }
+
+  // دالة لحذف السيريال نمبر المحفوظ بعد استخدامه
+  static Future<void> clearPendingSerialNumber(int userId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('pending_serial_$userId');
   }
 }
