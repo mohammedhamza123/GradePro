@@ -3,6 +3,7 @@ import 'package:gradpro/models/new_token.dart';
 import 'package:gradpro/models/refreshed_token.dart';
 import 'package:gradpro/services/endpoints.dart';
 import 'package:gradpro/services/internet_services.dart';
+import 'package:gradpro/services/token_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Login Service - Compatible with login_page.dart and user_provider.dart
@@ -50,11 +51,8 @@ class LoginService {
   /// Core login function with student approval system
   Future<bool> login(String username, String password) async {
     try {
-      print('DEBUG: Login attempt - Username: $username');
-      
       // Check if user is already authorized
       if (_internetService.isAuthorized()) {
-        print('DEBUG: User already authorized, returning true');
         return true;
       }
 
@@ -92,12 +90,17 @@ class LoginService {
       // Parse token response - NewToken contains both access and refresh tokens
       final token = newTokenFromJson(tokenBody.body);
       
-      // Store refresh token securely for future use
-      await _storeRefreshToken(token.refresh);
+      // Store tokens using TokenManager
+      await TokenManager.saveTokens(
+        accessToken: token.access,
+        refreshToken: token.refresh,
+        username: username,
+      );
+      
+      // انتظار قليل للتأكد من حفظ التوكن
+      await Future.delayed(const Duration(milliseconds: 300));
+      
       _internetService.setToken(token.access);
-      // حفظ التوكن في SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("access", token.access);
 
       // Post-login approval verification for students
       if (isStudent) {
@@ -126,20 +129,30 @@ class LoginService {
   /// Refresh login session using stored refresh token
   Future<bool> refreshLoginService() async {
     try {
-      print('DEBUG: Refresh login attempt');
+      // تحميل التوكن من SharedPreferences أولاً
+      await _internetService.loadTokenFromPrefs();
+      
+      // انتظار قليل للتأكد من تحميل التوكن
+      await Future.delayed(const Duration(milliseconds: 200));
+      
       if (_internetService.isAuthorized()) {
-        print('DEBUG: Already authorized, returning true');
         return true;
       }
 
-      final String? storedToken = await _getRefreshToken();
+      final String? storedToken = await TokenManager.getRefreshToken();
       if (storedToken == null || storedToken.isEmpty) {
         return false;
       }
 
+      // Add timeout to prevent hanging
       final tokenResponse = await _internetService.post(
         REFRESHTOKEN, 
         {"refresh": storedToken}
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Token refresh timeout');
+        },
       );
 
       if (tokenResponse.statusCode != 200) {
@@ -150,9 +163,12 @@ class LoginService {
       // Parse refreshed token - RefreshedToken only contains new access token
       final refreshedToken = refreshedTokenFromJson(tokenResponse.body);
       _internetService.setToken(refreshedToken.access);
-      // حفظ التوكن الجديد في SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString("access", refreshedToken.access);
+      
+      // حفظ التوكن الجديد باستخدام TokenManager
+      await TokenManager.saveAccessToken(refreshedToken.access);
+      
+      // انتظار قليل للتأكد من حفظ التوكن
+      await Future.delayed(const Duration(milliseconds: 200));
       
       // Note: RefreshedToken only contains access token, not refresh token
       // The original refresh token remains valid and stored for future refreshes
@@ -167,15 +183,18 @@ class LoginService {
   /// Complete logout with token cleanup
   Future<void> logout() async {
     try {
+      // مسح التوكن من InternetService
       _internetService.removeToken();
-      await _clearTokens();
-      // امسح التوكن من SharedPreferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove("access");
+      
+      // انتظار قليل للتأكد من مسح التوكن
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // مسح جميع البيانات المحفوظة باستخدام TokenManager
+      await TokenManager.clearAllTokens();
     } catch (e) {
       // Ensure tokens are cleared even if there's an error
       _internetService.removeToken();
-      await _clearTokens();
+      await TokenManager.clearAllTokens();
     }
   }
 
@@ -200,7 +219,6 @@ class LoginService {
       return false;
     } catch (e) {
       // If approval service is unavailable, allow login but log the issue
-      print('Warning: Student approval service unavailable: $e');
       return true; // Allow login if approval service is down
     }
   }
@@ -217,7 +235,6 @@ class LoginService {
       
       return null;
     } catch (e) {
-      print('Error fetching user details: $e');
       return null;
     }
   }
@@ -249,7 +266,6 @@ class LoginService {
         'serial_number': studentId,
       };
     } catch (e) {
-      print('Error fetching student data: $e');
       // Return basic student data as fallback
       return {
         'email': '',
@@ -266,7 +282,6 @@ class LoginService {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString("refresh", refreshToken);
     } catch (e) {
-      print('Error storing refresh token: $e');
       throw Exception('فشل في حفظ بيانات الجلسة.');
     }
   }
@@ -274,12 +289,9 @@ class LoginService {
   /// Retrieve stored refresh token
   Future<String?> _getRefreshToken() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString("refresh");
-      print('DEBUG: Retrieved refresh token: ${token != null ? "exists" : "null"}');
+      final token = await TokenManager.getRefreshToken();
       return token;
     } catch (e) {
-      print('Error retrieving refresh token: $e');
       return null;
     }
   }
@@ -287,12 +299,9 @@ class LoginService {
   /// Clear all stored tokens
   Future<void> _clearTokens() async {
     try {
-      print('DEBUG: Clearing all stored tokens');
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.remove("refresh");
-      print('DEBUG: Tokens cleared successfully');
     } catch (e) {
-      print('Error clearing tokens: $e');
     }
   }
 

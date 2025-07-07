@@ -230,7 +230,7 @@ class AdminProjectAddStudentPage extends StatelessWidget {
             children: [
               const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text("اختر مشروع لإدراج طالب اليه",
+                child: Text("اختر مشروع لإدراج طلاب إليه",
                     style:
                         TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               ),
@@ -246,7 +246,7 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                   ],
                 ),
               ),
-              provider.currentProject == null || provider.studentToAdd == null
+              provider.currentProject == null
                   ? AdminSearchbar(
                       onChanged: (String val) {
                         provider.filterProjectsList();
@@ -365,106 +365,156 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                           }),
                     )
                   : Expanded(
-                      child: FutureBuilder(
-                          future: provider.loadStudents(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              if (provider.filterList.isNotEmpty) {
-                                return ListView(
-                                  children: List.generate(
-                                      provider.filterList.length, (index) {
-                                    final item = provider.filterList[index];
-                                    if (provider.studentToAdd?.id == item.id) {
-                                      return Stack(
-                                        alignment: Alignment.bottomLeft,
-                                        children: [
-                                          StudentListItem(
-                                              imageLink: "",
-                                              firstName: item.user.firstName,
-                                              lastName: item.user.lastName,
-                                              userName: item.user.username),
-                                          Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child: Container(
-                                              decoration: const BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.white,
-                                              ),
-                                              child: const Icon(
-                                                Icons.check_outlined,
-                                                color: Colors.greenAccent,
-                                                size: 38,
-                                              ),
+                      child: Column(
+                        children: [
+                          // عرض الطلاب المحددين
+                          if (provider.studentsToAdd.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.all(8.0),
+                              decoration: BoxDecoration(
+                                color: const Color(0xff00577B).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: const Color(0xff00577B),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "الطلاب المحددين:",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 4,
+                                    children: provider.studentsToAdd.map((student) {
+                                      return Chip(
+                                        label: Text(
+                                          "${student.user.firstName} ${student.user.lastName}",
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                        deleteIcon: const Icon(Icons.close, size: 16),
+                                        onDeleted: () {
+                                          provider.removeStudentFromSelection(student);
+                                        },
+                                        backgroundColor: const Color(0xff00577B),
+                                        labelStyle: const TextStyle(color: Colors.white),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          // قائمة الطلاب المتاحة
+                          Expanded(
+                            child: FutureBuilder(
+                                future: provider.loadStudents(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    if (provider.filterList.isNotEmpty) {
+                                      return ListView(
+                                        children: List.generate(
+                                            provider.filterList.length, (index) {
+                                          final item = provider.filterList[index];
+                                          final isSelected = provider.isStudentSelected(item);
+                                          return InkWell(
+                                            onTap: () {
+                                              if (isSelected) {
+                                                provider.removeStudentFromSelection(item);
+                                              } else {
+                                                provider.addStudentToSelection(item);
+                                              }
+                                            },
+                                            child: Stack(
+                                              alignment: Alignment.bottomLeft,
+                                              children: [
+                                                StudentListItem(
+                                                    imageLink: "",
+                                                    firstName: item.user.firstName,
+                                                    lastName: item.user.lastName,
+                                                    userName: item.user.username),
+                                                if (isSelected)
+                                                  Padding(
+                                                    padding: const EdgeInsets.all(16.0),
+                                                    child: Container(
+                                                      decoration: const BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: Colors.white,
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.check_outlined,
+                                                        color: Colors.greenAccent,
+                                                        size: 38,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
                                             ),
-                                          ),
-                                        ],
+                                          );
+                                        }),
                                       );
                                     }
-                                    return InkWell(
-                                      onTap: () {
-                                        provider.setStudentToAdd(item);
-                                      },
-                                      child: StudentListItem(
-                                          imageLink: "",
-                                          firstName: item.user.firstName,
-                                          lastName: item.user.lastName,
-                                          userName: item.user.username),
-                                    );
-                                  }),
-                                );
-                              }
-                              return ListView(
-                                children: List.generate(snapshot.data!.length,
-                                    (index) {
-                                  final item = snapshot.data![index];
-                                  if (provider.studentToAdd?.id == item.id) {
-                                    return Stack(
-                                      alignment: Alignment.bottomLeft,
-                                      children: [
-                                        StudentListItem(
-                                            imageLink: "",
-                                            firstName: item.user.firstName,
-                                            lastName: item.user.lastName,
-                                            userName: item.user.username),
-                                        Padding(
-                                          padding: const EdgeInsets.all(16.0),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.white,
-                                            ),
-                                            child: const Icon(
-                                              Icons.check_outlined,
-                                              color: Colors.greenAccent,
-                                              size: 38,
-                                            ),
+                                    return ListView(
+                                      children: List.generate(snapshot.data!.length,
+                                          (index) {
+                                        final item = snapshot.data![index];
+                                        final isSelected = provider.isStudentSelected(item);
+                                        return InkWell(
+                                          onTap: () {
+                                            if (isSelected) {
+                                              provider.removeStudentFromSelection(item);
+                                            } else {
+                                              provider.addStudentToSelection(item);
+                                            }
+                                          },
+                                          child: Stack(
+                                            alignment: Alignment.bottomLeft,
+                                            children: [
+                                              StudentListItem(
+                                                  imageLink: "",
+                                                  firstName: item.user.firstName,
+                                                  lastName: item.user.lastName,
+                                                  userName: item.user.username),
+                                              if (isSelected)
+                                                Padding(
+                                                  padding: const EdgeInsets.all(16.0),
+                                                  child: Container(
+                                                    decoration: const BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: Colors.white,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.check_outlined,
+                                                      color: Colors.greenAccent,
+                                                      size: 38,
+                                                    ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
-                                        ),
-                                      ],
+                                        );
+                                      }),
                                     );
                                   }
-                                  return InkWell(
-                                    onTap: () {
-                                      provider.setStudentToAdd(item);
-                                    },
-                                    child: StudentListItem(
-                                        imageLink: "",
-                                        firstName: item.user.firstName,
-                                        lastName: item.user.lastName,
-                                        userName: item.user.username),
-                                  );
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.done) {
+                                    if (snapshot.hasError) {
+                                      return Text("$snapshot");
+                                    }
+                                  }
+                                  return const Center(
+                                      child: CircularProgressIndicator());
                                 }),
-                              );
-                            }
-                            if (snapshot.connectionState ==
-                                ConnectionState.done) {
-                              if (snapshot.hasError) {
-                                return Text("$snapshot");
-                              }
-                            }
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }),
+                          ),
+                        ],
+                      ),
                     ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -474,7 +524,7 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         provider.setIsProjectSelected(false);
-                        provider.setStudentToAdd(null);
+                        provider.clearSelectedStudents();
                         provider.setCurrentProject(null);
                       },
                       style: const ButtonStyle(
@@ -495,15 +545,15 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                       height: 50,
                       child: ElevatedButton(
                         onPressed: provider.isProjectSelected &&
-                                provider.studentToAdd != null
+                                provider.studentsToAdd.isNotEmpty
                             ? () async {
                                 final response =
-                                    await provider.addStudentToProject();
-                                const snackBar = SnackBar(
-                                  content: Text('تم اضافة الطالب للمشروع'),
+                                    await provider.addStudentsToProject();
+                                final snackBar = SnackBar(
+                                  content: Text('تم إضافة ${provider.studentsToAdd.length} طالب للمشروع'),
                                 );
                                 const snackBarFailed = SnackBar(
-                                  content: Text('لم تتم إضافة الطالب للمشروع'),
+                                  content: Text('لم تتم إضافة الطلاب للمشروع'),
                                 );
                                 if (response) {
                                   ScaffoldMessenger.of(context)
@@ -513,7 +563,7 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                                       .showSnackBar(snackBarFailed);
                                 }
                                 provider.setIsProjectSelected(false);
-                                provider.setStudentToAdd(null);
+                                provider.clearSelectedStudents();
                                 provider.setCurrentProject(null);
                               }
                             : provider.currentProject != null &&
@@ -533,8 +583,6 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                                 0xff00577B); // Change enabled button background color
                           }),
                         ),
-                        // backgroundColor:
-                        //     MaterialStatePropertyAll()),
                         child: !provider.isProjectSelected
                             ? const Text(
                                 "أختر المشروع",
@@ -543,17 +591,17 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                                     fontSize: 20,
                                     color: Colors.white),
                               )
-                            : provider.studentToAdd == null
+                            : provider.studentsToAdd.isEmpty
                                 ? const Text(
-                                    "أختر طالب",
+                                    "أختر طلاب",
                                     style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 20,
                                         color: Colors.white),
                                   )
-                                : const Text(
-                                    "إضافة",
-                                    style: TextStyle(
+                                : Text(
+                                    "إضافة ${provider.studentsToAdd.length} طالب",
+                                    style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 20,
                                         color: Colors.white),
@@ -830,7 +878,7 @@ class AdminProjectSetTeacherPage extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         provider.setIsProjectSelected(false);
-                        provider.setStudentToAdd(null);
+                        provider.clearSelectedStudents();
                         provider.setCurrentProject(null);
                         provider.setCurrentTeacher(null);
                       },
@@ -870,7 +918,7 @@ class AdminProjectSetTeacherPage extends StatelessWidget {
                                       .showSnackBar(snackBarFailed);
                                 }
                                 provider.setIsProjectSelected(false);
-                                provider.setStudentToAdd(null);
+                                provider.clearSelectedStudents();
                                 provider.setCurrentProject(null);
                                 provider.setCurrentTeacher(null);
                               }

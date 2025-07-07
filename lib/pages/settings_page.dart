@@ -146,12 +146,10 @@ class SettingsPage extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           ElevatedButton(
-                              onPressed: () async {
-                                provider.setGroup(0);
-                                provider.setUser(null);
-                                await logout();
-                                // Navigator.pushReplacementNamed(
-                                //     context, "/");
+                              onPressed: () {
+                                print('DEBUG: Logout button pressed');
+                                provider.logout();
+                                print('DEBUG: Logout completed, navigating to login');
                                 Navigator.pushReplacementNamed(context, '/');
                               },
                               child: const Text("تسجيل الخروج")),

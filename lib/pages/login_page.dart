@@ -5,6 +5,7 @@ import '../providers/user_provider.dart';
 import 'package:provider/provider.dart';
 import 'pending_approval_page.dart';
 import '../models/logging_state.dart';
+import '../services/internet_services.dart';
 
 import '../services/login_services.dart';
 import 'package:gradpro/pages/student_registration_page.dart';
@@ -54,7 +55,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return; // تحقق من أن الـ widget لا يزال موجود
 
@@ -62,6 +63,18 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     
     try {
+      // تحميل التوكن من SharedPreferences أولاً
+      await InternetService().loadTokenFromPrefs();
+      
+      // انتظار قليل للتأكد من تحميل التوكن
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // إذا كان المستخدم مسجل دخول بالفعل، انتقل مباشرة
+      if (userProvider.loggedIn && userProvider.user != null) {
+        Navigator.pushReplacementNamed(context, '/home');
+        return;
+      }
+      
       final loginState = await userProvider.refreshLogin;
       
       if (mounted) {
@@ -72,6 +85,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         // Navigate to the home route if the user is logged in
         if (isLoggedIn) {
           Navigator.pushReplacementNamed(context, '/home');
+        } else {
         }
       }
     } catch (e) {
@@ -389,12 +403,10 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                           try {
                                             await provider.loginUser(_formKey);
                                             
-                                            print('DEBUG: Login result - loggedIn: ${provider.loggedIn}, loginError: ${provider.loginError}, isPendingApproval: ${provider.isPendingApproval}');
                                             if (provider.loggedIn && !provider.loginError) {
                                               Navigator.pushReplacementNamed(context, "/home");
                                             } else if (provider.isPendingApproval) {
                                               // Handle student not approved - redirect to pending approval page
-                                              print('DEBUG: Redirecting to pending approval page');
                                               Navigator.pushAndRemoveUntil(
                                                 context,
                                                 MaterialPageRoute(

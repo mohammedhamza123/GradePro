@@ -4,6 +4,7 @@ import 'package:gradpro/services/user_services.dart';
 import 'package:gradpro/services/login_services.dart';
 import 'package:gradpro/services/models_services.dart';
 import 'package:gradpro/services/internet_services.dart';
+import 'package:gradpro/services/token_manager.dart';
 
 import '../models/logging_state.dart';
 import '../models/project_list.dart';
@@ -12,6 +13,8 @@ import '../models/user_list.dart';
 
 class UserProvider extends ChangeNotifier {
   final userServices = UserService();
+  final InternetService _internetService = InternetService();
+  final LoginService loginService = LoginService();
   bool _loggedIn = false;
   bool invalidPassword = false;
   bool invalidEmail = false;
@@ -60,26 +63,41 @@ class UserProvider extends ChangeNotifier {
   Map<String, dynamic>? get pendingStudentData => _pendingStudentData;
 
   Future<Logging> get refreshLogin async {
-    // تحميل التوكن من SharedPreferences قبل أي محاولة
-    await InternetService().loadTokenFromPrefs();
-    return await _switchLogin();
+    try {
+      // إذا كان المستخدم محمل بالفعل، ارجع الحالة الحالية
+      if (_user != null && _loggedIn) {
+        return await _switchLogin();
+      }
+      
+      // تحميل التوكن من SharedPreferences بسرعة
+      await _internetService.loadTokenFromPrefs();
+      
+      // انتظار قصير جداً
+      await Future.delayed(const Duration(milliseconds: 50));
+      
+      // محاولة تحديث التوكن أولاً
+      bool tokenRefreshed = await _refreshToken();
+      if (tokenRefreshed) {
+        return await _switchLogin();
+      }
+      
+      // إذا فشل تحديث التوكن، تحقق من وجود توكن صالح
+      if (_internetService.isAuthorized()) {
+        await _loadUser();
+        if (_user != null) {
+          _group = _user!.groups.isNotEmpty ? _user!.groups.first : 0;
+          return await _switchLogin();
+        }
+      }
+      
+      return Logging.notUser;
+    } catch (e) {
+      return Logging.notUser;
+    }
   }
 
   Future<void> loginUser(GlobalKey<FormState>? formKey) async {
     if (formKey?.currentState != null && formKey!.currentState!.validate()) {
-      print('DEBUG: Starting login process...');
-      print('DEBUG: Username entered: ${emailController.text}');
-      print('DEBUG: Password entered: ${passwordController.text}');
-      
-      // مسح البيانات المحفوظة قبل تسجيل الدخول
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.clear();
-        print('DEBUG: Cleared stored data before login');
-      } catch (e) {
-        print('DEBUG: Error clearing stored data: $e');
-      }
-      
       // Reset states
       _isPendingApproval = false;
       _pendingStudentData = null;
@@ -97,23 +115,15 @@ class UserProvider extends ChangeNotifier {
         _loggedIn = loggedIn;
         
         if (loggedIn) {
-          // حفظ username في SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('current_username', emailController.value.text);
-          
           // Load user and set group after successful login
           await _loadUser(emailController.value.text);
           _group = _user?.groups.first ?? 0; // Default to 0 for regular users
-          print('DEBUG: User logged in - ID: ${_user?.id}, Group: $_group, Username: ${_user?.username}');
-          print('DEBUG: User groups: ${_user?.groups}');
           
           // تحقق إضافي: إذا كان المستخدم طالب (group=2)، تحقق من اعتماده
           if (_group == 2) {
             try {
               await _loadStudent();
-              print('DEBUG: User is a student (approved)');
             } catch (e) {
-              print('DEBUG: User is a student but not approved - setting pending approval');
               _isPendingApproval = true;
               _loginError = true;
               _errorMessage = "حسابك قيد المراجعة من قبل الإدارة";
@@ -125,7 +135,6 @@ class UserProvider extends ChangeNotifier {
           
           // إذا كان الطالب معتمد، تأكد من توجيهه لصفحة الطالب
           if (_group == 2 && _studentAccount != null) {
-            print('DEBUG: Student is approved, should go to student page');
           }
           
           final Logging loginState = await _switchLogin();
@@ -212,81 +221,67 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<Logging> _switchLogin() async {
-    try {
-      print('DEBUG: _switchLogin called - User: ${_user?.id}, Group: $_group');
-      
-      // If user is null, try to load user data
-      if (_user == null) {
-        print('DEBUG: User is null, loading user data...');
-        await _loadUser();
-      }
-
-      // Now check if we have a valid user
-      if (_user != null) {
-        print('DEBUG: User loaded - ID: ${_user?.id}, Groups: ${_user?.groups}, Current Group: $_group');
-        switch (_group) {
-          case 1:
-            print('DEBUG: Processing admin login for user ${_user?.id}');
-            return Logging.admin; // Admin users
-          case 2:
-            try {
-              print('DEBUG: Processing student login for user ${_user?.id}');
-              // تحقق من أن الطالب محمل بالفعل
-              if (_studentAccount == null) {
-                await _loadStudent();
-              }
-              print('DEBUG: Student loaded successfully - ID: ${_studentAccount?.id}, Serial: ${_studentAccount?.serialNumber}');
-              await _loadProject();
-              return Logging.student; // Student users
-            } catch (e) {
-              print('DEBUG: Error loading student: $e');
-              // الطالب غير معتمد أو غير موجود
-              _loginError = true;
-              _errorMessage = "حسابك قيد المراجعة من قبل الإدارة";
-              return Logging.notUser;
-            }
-          case 3:
-            print('DEBUG: Processing teacher login for user ${_user?.id}');
-            return Logging.teacher; // Teacher users
-          case 0:
-            // مستخدم ليس له صلاحية
-            print('DEBUG: User has no permissions (group 0)');
-            return Logging.notUser;
-          default:
-            print('DEBUG: Unknown user group: $_group');
-            return Logging.notUser;
-        }
-      }
-      print('DEBUG: No valid user found, returning notUser');
-      return Logging.notUser;
-    } catch (e) {
-      print('DEBUG: Error in _switchLogin: $e');
-      _loginError = true;
-      return Logging.notUser;
+    // If user is null, try to load user data
+    if (_user == null) {
+      await _loadUser();
     }
+
+    // Now check if we have a valid user
+    if (_user != null) {
+      switch (_group) {
+        case 1:
+          return Logging.admin; // Admin users
+        case 2:
+          try {
+            // تحقق من أن الطالب محمل بالفعل
+            if (_studentAccount == null) {
+              await _loadStudent();
+            }
+            await _loadProject();
+            return Logging.student; // Student users
+          } catch (e) {
+            return Logging.notUser;
+          }
+        case 3:
+          return Logging.teacher; // Teacher users
+        case 0:
+          // مستخدم ليس له صلاحية
+          return Logging.notUser;
+        default:
+          return Logging.notUser;
+      }
+    }
+    
+    return Logging.notUser;
   }
 
   Future<bool> _refreshToken() async {
-    try {
-      // Add timeout to prevent hanging
-      bool approved = await refreshLoginService().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('Token refresh timeout');
-        },
-      );
-      if (approved) {
-        await _loadUser();
-        if (_user != null) {
-          // Set group to first group if available, otherwise 0 (regular user)
-          _group = _user!.groups.isNotEmpty ? _user!.groups.first : 0;
-          return true;
-        }
-      }
-      return false;
-    } catch (e) {
-      return false;
+    // إذا كان المستخدم محمل بالفعل، لا حاجة للتحديث
+    if (_user != null && _loggedIn) {
+      return true;
     }
+    
+    // انتظار قصير جداً قبل محاولة التحديث
+    await Future.delayed(const Duration(milliseconds: 50));
+    
+    // Add timeout to prevent hanging
+    bool approved = await refreshLoginService().timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        throw Exception('Token refresh timeout');
+      },
+    );
+    
+    if (approved) {
+      await _loadUser();
+      if (_user != null) {
+        // Set group to first group if available, otherwise 0 (regular user)
+        _group = _user!.groups.isNotEmpty ? _user!.groups.first : 0;
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   String? passwordValidator(String? value) {
@@ -328,113 +323,74 @@ class UserProvider extends ChangeNotifier {
   }
 
   Future<void> _loadUser([String? expectedUsername]) async {
-    try {
-      print('DEBUG: Loading user data from API...');
-      print('DEBUG: Current login username: $expectedUsername');
-      
-      // إذا كان لدينا username محفوظ، استخدمه
-      if (expectedUsername == null) {
-        final prefs = await SharedPreferences.getInstance();
-        expectedUsername = prefs.getString('current_username');
-        print('DEBUG: Retrieved username from prefs: $expectedUsername');
-      }
-      
-      _user = await getMyAccount(expectedUsername);
-      print('DEBUG: User loaded from API - ID: ${_user?.id}, Username: ${_user?.username}, Groups: ${_user?.groups}');
-      notifyListeners();
-    } catch (e) {
-      print('DEBUG: Error loading user: $e');
-      _user = null;
-      notifyListeners();
-      rethrow;
+    // إذا كان المستخدم محمل بالفعل، لا نحمل مرة أخرى
+    if (_user != null) {
+      return;
     }
+    
+    // إذا كان لدينا username محفوظ، استخدمه
+    if (expectedUsername == null) {
+      final prefs = await SharedPreferences.getInstance();
+      expectedUsername = prefs.getString('current_username');
+    }
+    
+    // Add timeout to prevent hanging
+    _user = await getMyAccount(expectedUsername).timeout(
+      const Duration(seconds: 5),
+      onTimeout: () {
+        throw Exception('User load timeout');
+      },
+    );
+    
+    notifyListeners();
   }
 
   Future<void> _loadStudent() async {
-    try {
-      print('DEBUG: Attempting to load student data...');
-      print('DEBUG: Current user ID: ${_user?.id}');
-      print('DEBUG: Current user groups: ${_user?.groups}');
-      print('DEBUG: Student already loaded: ${_studentAccount != null}');
+    // إذا كان الطالب محمل بالفعل، لا نحمل مرة أخرى
+    if (_studentAccount != null) {
+      return;
+    }
+    
+    if (_user != null) {
+      _studentAccount = await userServices.student.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw Exception('Student load timeout');
+        },
+      );
       
-      // إذا كان الطالب محمل بالفعل، لا نحمل مرة أخرى
-      if (_studentAccount != null) {
-        print('DEBUG: Student already loaded, skipping...');
-        return;
+      // تحقق من أن الطالب معتمد
+      if (_studentAccount == null) {
+        throw Exception('Student not approved yet');
       }
       
-      if (_user != null) {
-        print('DEBUG: Calling userServices.student...');
-        _studentAccount = await userServices.student.timeout(
-          const Duration(seconds: 15),
-          onTimeout: () {
-            print('DEBUG: Student load timeout');
-            throw Exception('Student load timeout');
-          },
-        );
-        
-        print('DEBUG: Student loaded - ID: ${_studentAccount?.id}, Serial: ${_studentAccount?.serialNumber}');
-        print('DEBUG: Student isApproved: ${_studentAccount?.isApproved}');
-        print('DEBUG: Student user: ${_studentAccount?.user}');
-        
-        // تحقق من أن الطالب معتمد
-        if (_studentAccount == null) {
-          print('DEBUG: Student is null - not approved');
-          throw Exception('Student not approved yet');
-        }
-        
-        // تحقق إضافي من حالة الموافقة
-        if (_studentAccount?.isApproved == false) {
-          print('DEBUG: Student isApproved is false - not approved');
-          throw Exception('Student not approved yet');
-        }
-        
-        print('DEBUG: Student is approved and loaded successfully');
-        notifyListeners();
-      } else if (_user == null) {
-        print('DEBUG: User is null, cannot load student');
-        throw Exception('User not loaded');
-      } else {
-        print('DEBUG: Student already loaded or user is not a student');
+      // تحقق إضافي من حالة الموافقة
+      if (_studentAccount?.isApproved == false) {
+        throw Exception('Student not approved yet');
       }
-    } catch (e) {
-      print('DEBUG: Error loading student: $e');
-      _studentAccount = null;
+      
       notifyListeners();
-      // نرمي الاستثناء مرة أخرى لمعالجته في دالة تسجيل الدخول
-      rethrow;
+    } else if (_user == null) {
+      throw Exception('User not loaded');
+    } else {
     }
   }
 
   Future<void> _loadProject() async {
-    try {
-      print('DEBUG: Attempting to load project data...');
-      print('DEBUG: Project already loaded: ${_studentProject != null}');
-      
-      // إذا كان المشروع محمل بالفعل، لا نحمل مرة أخرى
-      if (_studentProject != null) {
-        print('DEBUG: Project already loaded, skipping...');
-        return;
-      }
-      
-      if (_studentAccount?.project != null) {
-        print('DEBUG: Loading project for student ${_studentAccount?.id}');
-        _studentProject = await userServices.project.timeout(
-          const Duration(seconds: 10),
-          onTimeout: () {
-            print('DEBUG: Project load timeout');
-            throw Exception('Project load timeout');
-          },
-        );
-        print('DEBUG: Project loaded successfully - ID: ${_studentProject?.id}');
-        notifyListeners();
-      } else {
-        print('DEBUG: No project assigned to student');
-      }
-    } catch (e) {
-      print('DEBUG: Error loading project: $e');
-      _studentProject = null;
+    // إذا كان المشروع محمل بالفعل، لا نحمل مرة أخرى
+    if (_studentProject != null) {
+      return;
+    }
+    
+    if (_studentAccount?.project != null) {
+      _studentProject = await userServices.project.timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          throw Exception('Project load timeout');
+        },
+      );
       notifyListeners();
+    } else {
     }
   }
 
@@ -464,12 +420,7 @@ class UserProvider extends ChangeNotifier {
   }
 
   void logout() async {
-    print('DEBUG: Logging out user...');
-    
-    // مسح البيانات المحفوظة
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    
+    // مسح جميع البيانات المحلية أولاً
     _loggedIn = false;
     _user = null;
     _studentAccount = null;
@@ -480,7 +431,19 @@ class UserProvider extends ChangeNotifier {
     _isPendingApproval = false;
     _pendingStudentData = null;
     
-    print('DEBUG: User logged out successfully');
+    // مسح التوكن من InternetService
+    _internetService.removeToken();
+    
+    // مسح البيانات المحفوظة باستخدام TokenManager
+    await TokenManager.clearAllTokens();
+    
+    // استدعاء دالة تسجيل الخروج من LoginService
+    await loginService.logout();
+    
+    // مسح البيانات المحفوظة في UserService أيضاً
+    final userService = UserService();
+    userService.clearData();
+    
     notifyListeners();
   }
 

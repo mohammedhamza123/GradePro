@@ -12,7 +12,7 @@ class AdminProjectProvider extends ChangeNotifier {
   bool _done = false;
   
   List<ProjectDetail> _filteredProjectList = [];
-  StudentDetail? _studentToAdd;
+  List<StudentDetail> _studentsToAdd = [];
   ProjectDetail? _currentProject;
   TeacherDetail? _teacherDetail;
 
@@ -31,9 +31,9 @@ class AdminProjectProvider extends ChangeNotifier {
   bool get isProjectSelected => _isProjectSelected;
   bool get done => _done;
 
-  // Getters for current project, student to add, teacher to set
+  // Getters for current project, students to add, teacher to set
   ProjectDetail? get currentProject => _currentProject;
-  StudentDetail? get studentToAdd => _studentToAdd;
+  List<StudentDetail> get studentsToAdd => _studentsToAdd;
   TeacherDetail? get teacherToSet => _teacherDetail;
 
   // Getter for filtered project list
@@ -201,11 +201,29 @@ class AdminProjectProvider extends ChangeNotifier {
     return _studentList.where((e) => e.project == projectId).toList();
   }
 
-  void setStudentToAdd(StudentDetail? student) {
-    if (_studentToAdd != student) {
-      _studentToAdd = student;
+  // تعديل دالة إضافة طالب لتضيف طالب للقائمة
+  void addStudentToSelection(StudentDetail student) {
+    if (!_studentsToAdd.any((s) => s.id == student.id)) {
+      _studentsToAdd.add(student);
       notifyListeners();
     }
+  }
+
+  // دالة لإزالة طالب من القائمة
+  void removeStudentFromSelection(StudentDetail student) {
+    _studentsToAdd.removeWhere((s) => s.id == student.id);
+    notifyListeners();
+  }
+
+  // دالة للتحقق من وجود طالب في القائمة
+  bool isStudentSelected(StudentDetail student) {
+    return _studentsToAdd.any((s) => s.id == student.id);
+  }
+
+  // دالة لمسح جميع الطلاب المحددين
+  void clearSelectedStudents() {
+    _studentsToAdd.clear();
+    notifyListeners();
   }
 
   void setCurrentProject(ProjectDetail? item) {
@@ -215,22 +233,31 @@ class AdminProjectProvider extends ChangeNotifier {
     }
   }
 
-  // Add student to project
-  Future<bool> addStudentToProject() async {
-    if (studentToAdd != null && currentProject != null) {
-      if (studentToAdd!.project == null) {
-        try {
-          final data = await patchStudent(
-              studentToAdd!.id, null, currentProject!.id, null);
-          if (data.project == currentProject!.id) {
-            studentToAdd!.project = currentProject!.id; // Update locally
-            notifyListeners();
-            return true;
+  // تعديل دالة إضافة الطلاب للمشروع لتجنب التعديل المتزامن
+  Future<bool> addStudentsToProject() async {
+    if (_studentsToAdd.isNotEmpty && currentProject != null) {
+      bool allSuccess = true;
+      // التكرار على نسخة من القائمة لتجنب التعديل المتزامن
+      final studentsCopy = List<StudentDetail>.from(_studentsToAdd);
+      for (StudentDetail student in studentsCopy) {
+        if (student.project == null) {
+          try {
+            final data = await patchStudent(
+                student.id, null, currentProject!.id, null);
+            if (data.project == currentProject!.id) {
+              student.project = currentProject!.id; // Update locally
+            } else {
+              allSuccess = false;
+            }
+          } catch (e) {
+            allSuccess = false;
           }
-        } catch (e) {
-          return false;
         }
       }
+      if (allSuccess) {
+        notifyListeners();
+      }
+      return allSuccess;
     }
     return false;
   }

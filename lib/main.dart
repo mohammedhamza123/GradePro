@@ -8,7 +8,6 @@ import 'package:gradpro/pages/chat_page.dart';
 import 'package:gradpro/pages/login_page.dart';
 import 'package:gradpro/pages/notifications_page.dart';
 import 'package:gradpro/pages/pending_approval_page.dart';
-import 'package:gradpro/pages/real_time_notifications_page.dart';
 import 'package:gradpro/pages/settings_page.dart';
 import 'package:gradpro/pages/student_page.dart';
 import 'package:gradpro/pages/student_registration_page.dart';
@@ -33,6 +32,8 @@ import 'package:provider/provider.dart';
 import 'package:gradpro/pages/welcome_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'models/logging_state.dart';
+import 'firebase_options.dart';
+import 'package:gradpro/services/internet_services.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -45,25 +46,9 @@ Future<void> main() async {
     NotificationService.instance.initialize(navigatorKey);
   } catch (e) {
     // If Firebase fails to initialize, continue without it
-    print('Firebase initialization failed: $e');
   }
 
-  runApp(MultiProvider(providers: [
-    ChangeNotifierProvider(create: (context) => StudentProvider()),
-    ChangeNotifierProvider(create: (context) => UserProvider()),
-    ChangeNotifierProvider(create: (context) => TeacherProvider()),
-    ChangeNotifierProvider(create: (context) => AdminStudentProvider()),
-    ChangeNotifierProvider(create: (context) => RegisterProvider()),
-    ChangeNotifierProvider(create: (context) => AdminEditStudentProvider()),
-    ChangeNotifierProvider(create: (context) => AdminTeacherProvider()),
-    ChangeNotifierProvider(create: (context) => AdminEditTeacherProvider()),
-    ChangeNotifierProvider(create: (context) => AdminProjectProvider()),
-    ChangeNotifierProvider(create: (context) => AdminEditProjectProvider()),
-    ChangeNotifierProvider(create: (context) => ChatProvider()),
-    ChangeNotifierProvider(create: (context) => PdfProvider()),
-    ChangeNotifierProvider(create: (context) => PdfViewerProvider()),
-    ChangeNotifierProvider(create: (context) => NotificationProvider()),
-  ], child: const MyApp()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -71,55 +56,78 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ManagerApp',
-      routes: {
-        '/home': (context) => const HomePage(),
-        '/login': (context) => const LoginPage(),
-        '/student-register': (context) => const StudentRegistrationPage(),
-        '/pending-approval': (context) => const PendingApprovalPage(
-              username: '',
-              email: '',
-              firstName: '',
-              lastName: '',
-              serialNumber: '',
-            ),
-        '/notifications': (context) => const NotificationsPage(),
-        '/real-time-notifications': (context) => const RealTimeNotificationsPage(),
-        '/student': (context) => const StudentPage(),
-        '/settings': (context) => const SettingsPage(),
-        '/chat': (context) => const ChatPage(),
-        '/teacher': (context) => const TeacherPage(),
-        '/pdfViewer': (context) => const PdfView(),
-        '/admin': (context) => const AdminPage(),
-        '/adminStudentList': (context) => const AdminStudentsPage(),
-        '/adminStudentAdd': (context) => const AdminStudentAddPage(),
-        '/adminStudentEdit': (context) => const AdminStudentEditPage(),
-        '/adminStudentDelete': (context) => const AdminStudentDeletePage(),
-        '/adminTeacherList': (context) => const AdminTeacherListPage(),
-        '/adminTeacherAdd': (context) => const AdminTeacherAddPage(),
-        '/adminTeacherEdit': (context) => const AdminTeacherEditPage(),
-        '/adminTeacherDelete': (context) => const AdminTeacherDeletePage(),
-        '/adminExaminerList': (context) => const AdminExaminerListPage(),
-        '/adminExaminerAdd': (context) => const AdminExaminerAddPage(),
-        '/adminExaminerEdit': (context) => const AdminExaminerEditPage(),
-        '/adminExaminerDelete': (context) => const AdminExaminerDeletePage(),
-        '/adminProjectList': (context) => const AdminProjectListPage(),
-        '/adminProjectDelete': (context) => const AdminProjectDeletePage(),
-        '/adminProjectAccept': (context) => const AdminProjectAcceptPage(),
-        '/adminProjectAddStudent': (context) =>
-            const AdminProjectAddStudentPage(),
-        '/adminProjectSetTeacher': (context) =>
-            const AdminProjectSetTeacherPage(),
-        '/adminProjectEdit': (context) => const AdminProjectEditPage(),
-      },
-      theme: ThemeData(
-        fontFamily: "Tajawal",
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff00577B)),
-        useMaterial3: true,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => StudentProvider()),
+        ChangeNotifierProvider(create: (_) => TeacherProvider()),
+        ChangeNotifierProvider(create: (_) => AdminStudentProvider()),
+        ChangeNotifierProvider(create: (_) => AdminTeacherProvider()),
+        ChangeNotifierProvider(create: (_) => AdminProjectProvider()),
+        ChangeNotifierProvider(create: (_) => AdminEditStudentProvider()),
+        ChangeNotifierProvider(create: (_) => AdminEditTeacherProvider()),
+        ChangeNotifierProvider(create: (_) => AdminEditProjectProvider()),
+        ChangeNotifierProvider(create: (_) => RegisterProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+        ChangeNotifierProvider(create: (_) => PdfProvider()),
+        ChangeNotifierProvider(create: (_) => PdfViewerProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Gradify',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+          fontFamily: 'Tajawal',
+        ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const WelcomePage(),
+          '/login': (context) => const LoginPage(),
+          '/home': (context) => const HomePage(),
+          '/student': (context) => const StudentPage(),
+          '/teacher': (context) => const TeacherPage(),
+          '/admin': (context) => const AdminPage(),
+          '/admin-students': (context) => const AdminStudentsPage(),
+          '/admin-teachers': (context) => const AdminTeacherListPage(),
+          '/admin-projects': (context) => const AdminProjectListPage(),
+          '/admin-examiners': (context) => const AdminExaminerListPage(),
+          '/student-register': (context) => const StudentRegistrationPage(),
+          '/settings': (context) => const SettingsPage(),
+          '/notifications': (context) => const NotificationsPage(),
+          '/chat': (context) => const ChatPage(),
+          '/pdfViewer': (context) => const PdfView(),
+          '/pending-approval': (context) => const PendingApprovalPage(
+                username: '',
+                email: '',
+                firstName: '',
+                lastName: '',
+                serialNumber: '',
+              ),
+          // Admin Student Routes
+          '/adminStudentList': (context) => const AdminStudentsPage(),
+          '/adminStudentAdd': (context) => const AdminStudentAddPage(),
+          '/adminStudentEdit': (context) => const AdminStudentEditPage(),
+          '/adminStudentDelete': (context) => const AdminStudentDeletePage(),
+          // Admin Teacher Routes
+          '/adminTeacherList': (context) => const AdminTeacherListPage(),
+          '/adminTeacherAdd': (context) => const AdminTeacherAddPage(),
+          '/adminTeacherEdit': (context) => const AdminTeacherEditPage(),
+          '/adminTeacherDelete': (context) => const AdminTeacherDeletePage(),
+          // Admin Examiner Routes
+          '/adminExaminerList': (context) => const AdminExaminerListPage(),
+          '/adminExaminerAdd': (context) => const AdminExaminerAddPage(),
+          '/adminExaminerEdit': (context) => const AdminExaminerEditPage(),
+          '/adminExaminerDelete': (context) => const AdminExaminerDeletePage(),
+          // Admin Project Routes
+          '/adminProjectAccept': (context) => const AdminProjectAcceptPage(),
+          '/adminProjectAddStudent': (context) => const AdminProjectAddStudentPage(),
+          '/adminProjectSetTeacher': (context) => const AdminProjectSetTeacherPage(),
+          '/adminProjectList': (context) => const AdminProjectListPage(),
+          '/adminProjectEdit': (context) => const AdminProjectEditPage(),
+          '/adminProjectDelete': (context) => const AdminProjectDeletePage(),
+        },
       ),
-      home: const WelcomePage(),
     );
   }
 }
@@ -130,20 +138,38 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<UserProvider>(
       builder: (context, login, child) {
+        // إذا كان المستخدم مسجل دخول بالفعل، انتقل مباشرة
+        if (login.loggedIn && login.user != null) {
+          switch (login.group) {
+            case 1:
+              return const AdminPage();
+            case 2:
+              return const StudentPage();
+            case 3:
+              return const TeacherPage();
+            default:
+              return const LoginPage();
+          }
+        }
 
         return FutureBuilder<Logging>(
           future: login.refreshLogin,
           builder: (BuildContext context, AsyncSnapshot<Logging> snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              // Still loading
+              // Still loading - show a faster loading indicator
               return const Scaffold(
                 body: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(),
-                      SizedBox(height: 16),
-                      Text("جاري التحميل..."),
+                      CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                      SizedBox(height: 12),
+                      Text(
+                        "جاري التحقق...",
+                        style: TextStyle(fontSize: 14),
+                      ),
                     ],
                   ),
                 ),

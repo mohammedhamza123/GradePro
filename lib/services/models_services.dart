@@ -67,10 +67,12 @@ Future<ProjectList> getProjectList() async {
 }
 
 Future<User> getMyAccount([String? expectedUsername]) async {
-  print('DEBUG: getMyAccount called with expected username: $expectedUsername');
-  http.Response response = await services.get(MYACCOUNT, null);
-  print('DEBUG: getMyAccount response status: ${response.statusCode}');
-  print('DEBUG: getMyAccount response body: ${response.body}');
+  http.Response response = await services.get(MYACCOUNT, null).timeout(
+    const Duration(seconds: 15),
+    onTimeout: () {
+      throw Exception('getMyAccount timeout');
+    },
+  );
   
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
@@ -78,65 +80,47 @@ Future<User> getMyAccount([String? expectedUsername]) async {
   }
   
   final jsonData = jsonDecode(body);
-  print('DEBUG: getMyAccount jsonData: $jsonData');
   
-  // Handle the case where API returns a list of users
   if (jsonData is Map && jsonData.containsKey('datum')) {
     final usersList = jsonData['datum'] as List;
-    print('DEBUG: getMyAccount usersList length: ${usersList.length}');
     
     if (usersList.isNotEmpty) {
       User? foundUser;
       
-      // Try to find user by expected username
       if (expectedUsername != null) {
-        print('DEBUG: getMyAccount searching for username: $expectedUsername');
         for (var userData in usersList) {
           if (userData['username'] == expectedUsername) {
             foundUser = User.fromJson(userData);
-            print('DEBUG: getMyAccount found user by username: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
             break;
           }
         }
       }
       
       if (foundUser == null) {
-        // Try to get username from token if not provided
         String? tokenUsername = expectedUsername;
         if (tokenUsername == null) {
           tokenUsername = await _decodeUsernameFromToken();
-          print('DEBUG: getMyAccount got username from token: $tokenUsername');
         }
         
-        // Try to find user by token username
         if (tokenUsername != null) {
-          print('DEBUG: getMyAccount searching for token username: $tokenUsername');
           for (var userData in usersList) {
-            // Check if tokenUsername is a number (user_id) or string (username)
             if (int.tryParse(tokenUsername) != null) {
-              // tokenUsername is a number, search by user_id
               if (userData['id'].toString() == tokenUsername) {
                 foundUser = User.fromJson(userData);
-                print('DEBUG: getMyAccount found user by user_id: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
                 break;
               }
             } else {
-              // tokenUsername is a string, search by username
               if (userData['username'] == tokenUsername) {
                 foundUser = User.fromJson(userData);
-                print('DEBUG: getMyAccount found user by username: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
                 break;
               }
             }
           }
         }
         
-        // If still not found, fallback to first user
         if (foundUser == null) {
           final userData = usersList.first;
-          print('DEBUG: getMyAccount using first user (fallback): $userData');
           foundUser = User.fromJson(userData);
-          print('DEBUG: getMyAccount parsed user: ID: ${foundUser.id}, Username: ${foundUser.username}, Groups: ${foundUser.groups}');
         }
       }
       
@@ -145,111 +129,80 @@ Future<User> getMyAccount([String? expectedUsername]) async {
       throw Exception('No users found');
     }
   } else if (jsonData is List && jsonData.isNotEmpty) {
-    // Handle direct list response
     final userData = jsonData.first;
-    print('DEBUG: getMyAccount first user data (list): $userData');
     final user = User.fromJson(userData);
-    print('DEBUG: getMyAccount parsed user (list): ID: ${user.id}, Username: ${user.username}, Groups: ${user.groups}');
     return user;
   } else {
     throw Exception('Invalid user data structure');
   }
 }
 
-// Temporary helper function to get current username from token
 Future<String?> _getCurrentUsernameFromToken() async {
   try {
-    // This is a hack - in a real app, the backend should decode the token
-    // and return the current user's information
     final response = await services.get('/api/token/verify/', null);
-    print('DEBUG: Token verify response status: ${response.statusCode}');
-    print('DEBUG: Token verify response body: ${response.body}');
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       return data['username'];
     }
   } catch (e) {
-    print('DEBUG: Error getting username from token: $e');
+    return null;
   }
-  return null;
 }
 
-// Temporary helper function to decode username from JWT token
 Future<String?> _decodeUsernameFromToken() async {
   try {
-    // Get the current token
     final token = services.getToken();
     if (token == null) {
-      print('DEBUG: No token available for decoding');
       return null;
     }
     
-    print('DEBUG: Attempting to decode token: ${token.substring(0, 50)}...');
-    
-    // JWT tokens have 3 parts separated by dots
     final parts = token.split('.');
     if (parts.length != 3) {
-      print('DEBUG: Invalid JWT token format');
       return null;
     }
     
-    // Decode the payload (second part)
     final payload = parts[1];
     
-    // Add padding if needed (only if not already padded)
     String paddedPayload = payload;
     if (payload.length % 4 != 0) {
       paddedPayload = payload + '=' * (4 - payload.length % 4);
     }
     
-    // Decode base64
     final decodedBytes = base64Url.decode(paddedPayload);
     final decodedString = utf8.decode(decodedBytes);
     final payloadData = jsonDecode(decodedString);
     
-    print('DEBUG: Decoded token payload: $payloadData');
-    
-    // Extract username from payload
     final username = payloadData['username'] ?? payloadData['user_id'];
-    print('DEBUG: Extracted username from token: $username');
     
     return username?.toString();
   } catch (e) {
-    print('DEBUG: Error decoding token: $e');
     return null;
   }
 }
 
 Future<Student?> getStudent(int? id) async {
-  print('DEBUG: getStudent called for user $id');
-  http.Response response = await services.get(STUDENT, {"user": "$id"});
-  print('DEBUG: getStudent response status: ${response.statusCode}');
-  print('DEBUG: getStudent response body: ${response.body}');
+  http.Response response = await services.get(STUDENT, {"user": "$id"}).timeout(
+    const Duration(seconds: 15),
+    onTimeout: () {
+      throw Exception('getStudent timeout');
+    },
+  );
   
   if (response.statusCode == 403) {
-    print('DEBUG: Student not approved (403)');
-    // Student is not approved yet - throw exception instead of returning null
     throw Exception('Student not approved yet');
   }
   
   if (response.statusCode != 200) {
-    print('DEBUG: Student error status: ${response.statusCode}');
     throw Exception('${response.statusCode}:${response.body}');
   }
   
   final body = responseDecoder(response);
   final data = jsonDecode(body);
-  print('DEBUG: Student data: $data');
   
   if (data['datum'] == null || data['datum'].isEmpty) {
-    print('DEBUG: No student data found');
     throw Exception('Student not approved yet');
   }
   
-  print('DEBUG: Student approved, returning student data');
-  print('DEBUG: Student ID: ${data["datum"].first["id"]}');
-  print('DEBUG: Student user: ${data["datum"].first["user"]}');
-  print('DEBUG: Student serialNumber: ${data["datum"].first["serialNumber"]}');
   return Student.fromJson(data["datum"].first);
 }
 
@@ -286,7 +239,13 @@ Future<void> delTeacher(int id) async {
 }
 
 Future<Project> getProject(int id) async {
-  http.Response response = await services.get("$PROJECT$id/", null);
+  http.Response response = await services.get("$PROJECT$id/", null).timeout(
+    const Duration(seconds: 15),
+    onTimeout: () {
+      throw Exception('getProject timeout');
+    },
+  );
+  
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
@@ -474,7 +433,6 @@ Future<Requirement> patchRequirement(
 }
 
 Future<User?> registerUser(Map<String, dynamic> user) async {
-  // For registration, we don't need authentication, so we'll make a direct call
   final url = Uri.parse("https://easy0123.pythonanywhere.com$REGISTER");
   print("Attempting registration to: $url");
   print("User data: ${jsonEncode(user)}");
@@ -492,7 +450,6 @@ Future<User?> registerUser(Map<String, dynamic> user) async {
   print("Registration response body: ${response.body}");
   final body = responseDecoder(response);
   if (response.statusCode != 201) {
-    // تحسين رسائل الخطأ
     try {
       final errorData = jsonDecode(response.body);
       if (errorData is Map<String, dynamic>) {
@@ -501,7 +458,6 @@ Future<User?> registerUser(Map<String, dynamic> user) async {
         } else if (errorData.containsKey('username')) {
           throw Exception('اسم المستخدم مستخدم بالفعل');
         } else {
-          // عرض أول خطأ موجود
           final firstError = errorData.values.first;
           if (firstError is List && firstError.isNotEmpty) {
             throw Exception(firstError.first);
@@ -511,7 +467,6 @@ Future<User?> registerUser(Map<String, dynamic> user) async {
         }
       }
     } catch (e) {
-      // إذا فشل في تحليل JSON، استخدم الرسالة الأصلية
       throw Exception(response.body);
     }
   }
@@ -627,11 +582,9 @@ Future<String> getApiKey() async {
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
   }
-  // Assuming the API returns: {"key": "your_api_key"}
   return jsonDecode(body)['key'];
 }
 
-// وظائف الموافقة والرفض للطلاب
 Future<void> approveStudentAPI(int studentId) async {
   http.Response response = await services.post("$STUDENT$studentId/approve/", {});
   if (response.statusCode != 200) {
@@ -640,7 +593,6 @@ Future<void> approveStudentAPI(int studentId) async {
 }
 
 Future<void> rejectStudentAPI(int studentId) async {
-  // رفض الطالب وحذفه من قاعدة البيانات
   http.Response response = await services.post("$STUDENT$studentId/reject/", {});
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
@@ -656,10 +608,8 @@ Future<StudentDetailsList> getPendingStudents() async {
   return studentDetailsListFromJson(body);
 }
 
-// التحقق من حالة الطالب
 Future<bool> checkStudentApprovalStatus(String username) async {
   try {
-    // First, try to get user by username
     final userResponse = await http.get(
       Uri.parse("https://easy0123.pythonanywhere.com$USER?username=$username"),
       headers: {
@@ -672,7 +622,6 @@ Future<bool> checkStudentApprovalStatus(String username) async {
       if (userData.isNotEmpty) {
         final userId = userData[0]['id'];
         
-        // Then check student status
         final studentResponse = await http.get(
           Uri.parse("https://easy0123.pythonanywhere.com$STUDENT?user=$userId"),
           headers: {
@@ -686,7 +635,6 @@ Future<bool> checkStudentApprovalStatus(String username) async {
             return studentData['datum'][0]['is_approved'] ?? false;
           }
         } else if (studentResponse.statusCode == 403) {
-          // Student exists but not approved
           return false;
         }
       }

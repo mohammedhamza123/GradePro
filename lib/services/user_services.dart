@@ -27,6 +27,10 @@ class UserService {
 
   Future<User?> _getUser([String? expectedUsername]) async {
     try {
+      if (_user != null) {
+        return _user;
+      }
+      
       _user = await getMyAccount(expectedUsername);
       return _user;
     } catch (e) {
@@ -35,6 +39,10 @@ class UserService {
   }
 
   Future<Project?> _getProject() async {
+    if (_studentProject != null) {
+      return _studentProject;
+    }
+    
     if (_studentAccount?.project != null) {
       try {
         _studentProject = await getProject(_studentAccount!.project!);
@@ -48,17 +56,17 @@ class UserService {
 
   Future<Student?> _getStudent() async {
     await _getUser();
-    print('DEBUG: _getStudent - User: ${_user?.id}, Groups: ${_user?.groups}');
+    
+    if (_studentAccount != null) {
+      return _studentAccount;
+    }
+    
     if (_user != null) {
       if (_user!.groups.isNotEmpty && _user!.groups.first == 2) {
         try {
-          print('DEBUG: _getStudent - Calling getStudent with user ID: ${_user?.id}');
           _studentAccount = await getStudent(_user?.id);
-          print('DEBUG: _getStudent - Student loaded: ${_studentAccount?.id}');
           return _studentAccount;
         } catch (e) {
-          print('DEBUG: _getStudent - Error loading student: $e');
-          // If there's an error, it might be because student is not approved
           throw Exception('Student not approved yet');
         }
       }
@@ -76,5 +84,11 @@ class UserService {
 
   Future<String> changePassword(String pastPassword, String newPassword) async {
     return await patchPassword(pastPassword, newPassword);
+  }
+
+  void clearData() {
+    _user = null;
+    _studentProject = null;
+    _studentAccount = null;
   }
 } 
