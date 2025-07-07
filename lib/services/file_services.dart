@@ -1,48 +1,65 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:gradpro/models/file_direct_link.dart';
 import 'package:gradpro/models/file_response.dart';
 import 'package:flutter/material.dart';
-import 'package:gradpro/services/models_services.dart';
+import 'package:dio/dio.dart';
+import 'package:convert/convert.dart';
 
 class FileService {
   static final FileService _instance = FileService._internal();
+
+  // ✅ قم بوضع التوكن والمجلد هنا
   static const String _authToken = "kwCRr4gOqLfKWBLBvg75A66raFXOb44j";
-  static const String _folderToken = "bf822299-e50c-42b3-957c-8eb7d383b9c8";
-  static const String _filesHost =
-      "https://upload.gofile.io/uploadfile"; // Updated to GoFile global endpoint
+  static const String _folderToken = "e52ddd20-4a5a-4092-961a-dcd3958119d8";
+
+  // ✅ عنوان رفع الملفات
+  static const String _filesHost = "https://upload.gofile.io/uploadfile";
 
   factory FileService() => _instance;
   FileService._internal();
 
-  /// Uploads a file to GoFile. If [folderId] is provided, uploads to that folder.
+  /// ✅ رفع ملف إلى مجلد محدد
   Future<FileResponse?> uploadFile(File file, {String? folderId}) async {
-    final request = http.MultipartRequest('POST', Uri.parse(_filesHost))
-      ..headers['Authorization'] = _authToken;
+    try {
+      final dio = Dio();
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(file.path, filename: file.path.split('/').last),
+        'folderId': folderId ?? _folderToken,
+      });
 
-    if (folderId != null) {
-      request.fields['folderId'] = folderId;
-    } else {
-      request.fields['folderId'] = _folderToken;
-    }
-    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      final response = await dio.post(
+        _filesHost,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          headers: {
+            'Authorization': 'Bearer $_authToken', // ✅ التوكن في الهيدر
+          },
+        ),
+      );
 
-    final response = await request.send();
+      print('✅ Status code: ${response.statusCode}');
+      print('📦 Response body: ${response.data}');
 
-    if (response.statusCode == 200) {
-      final responseBody = await response.stream.bytesToString();
-      return fileResponseFromJson(responseBody);
-    } else {
-      getApiKey();
-      print('Error uploading file: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final data = response.data;
+        return fileResponseFromJson(jsonEncode(data));
+      } else {
+        print('❌ Error uploading file: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('❌ Dio error: $e');
       return null;
     }
   }
 
-  /// Fetches direct download links for a file or folder by its [fileId].
+  /// ✅ جلب رابط مباشر لملف أو مجلد
   Future<FileDirectLink?> fetchDirectLink(String fileId) async {
     final url = Uri.parse('https://api.gofile.io/contents/$fileId/directlinks');
-    final headers = {'Authorization': _authToken};
+    final headers = {'Authorization': 'Bearer $_authToken'};
 
     try {
       final response = await http.post(url, headers: headers);
@@ -50,37 +67,42 @@ class FileService {
       if (response.statusCode == 200) {
         return fileDirectLinkFromJson(response.body);
       } else {
-        print('Error fetching direct link: ${response.statusCode}');
+        print('❌ Error fetching direct link: ${response.statusCode}');
         print(response.body);
-        getApiKey();
       }
     } catch (error) {
-      print('Error fetching direct link: $error');
+      print('❌ Exception fetching direct link: $error');
     }
     return null;
   }
 
-  /// Deletes files or folders by their IDs (comma-separated).
+  /// ✅ حذف ملفات أو مجلدات عبر ID
   Future<bool> deleteContents(String contentsId) async {
     final url = Uri.parse('https://api.gofile.io/contents');
     final headers = {
-      'Authorization': _authToken,
+      'Authorization': 'Bearer $_authToken',
       'Content-Type': 'application/json',
     };
     final body = '{"contentsId": "$contentsId"}';
 
     try {
       final response = await http.delete(url, headers: headers, body: body);
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        print('🗑 Deleted successfully');
+        return true;
+      } else {
+        print('❌ Delete failed: ${response.statusCode}');
+        print(response.body);
+        return false;
+      }
     } catch (error) {
-      getApiKey();
-      print('Error deleting contents: $error');
+      print('❌ Exception deleting content: $error');
       return false;
     }
   }
 
+  /// ✅ إظهار رسالة للمستخدم
   void showSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

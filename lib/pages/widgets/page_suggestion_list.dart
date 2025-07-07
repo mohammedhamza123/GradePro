@@ -231,10 +231,27 @@ class TeacherGradingView extends StatelessWidget {
   }
 }
 
-class GradingTable extends StatelessWidget {
+class GradingTable extends StatefulWidget {
   final ProjectDetail? project;
-
   const GradingTable({super.key, this.project});
+
+  @override
+  State<GradingTable> createState() => _GradingTableState();
+}
+
+class _GradingTableState extends State<GradingTable> {
+  final TextEditingController studentNameController = TextEditingController();
+  final TextEditingController projectTitleController = TextEditingController();
+  String evaluationType = 'جماعي';
+
+  @override
+  void initState() {
+    super.initState();
+    // لا يوجد خاصية student في project، لذلك نترك اسم الطالب فارغًا
+    if (widget.project != null) {
+      projectTitleController.text = widget.project!.title ?? '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -243,43 +260,83 @@ class GradingTable extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
+            // واجهة إدخال البيانات التعريفية
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: studentNameController,
+                    decoration: const InputDecoration(labelText: 'اسم الطالب'),
+                  ),
+                  TextField(
+                    controller: projectTitleController,
+                    decoration: const InputDecoration(labelText: 'اسم المشروع'),
+                  ),
+                  Row(
+                    children: [
+                      const Text('نوع التقييم: '),
+                      DropdownButton<String>(
+                        value: evaluationType,
+                        items: ['جماعي', 'فردي']
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) setState(() => evaluationType = val);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
             Expanded(
               flex: 8,
               child: ListView.builder(
-                itemCount: provider.dataColumn1.length + 1,
-                // Number of rows in the table + header row
+                itemCount: provider.evaluationItems.length,
                 itemBuilder: (context, index) {
-                  if (index == 0) {
-                    // Header row
-                    return Container(
-                      color: Colors.grey[300],
-                      child: Row(
-                        children: [
-                          _buildHeaderCell(provider.header[0]),
-                          _buildHeaderCell(provider.header[1]),
-                          _buildHeaderCell(provider.header[2]),
-                          _buildHeaderCell(provider.header[3]),
-                        ],
-                      ),
-                    );
-                  }
-
-                  index -= 1; // Adjust index to match data lists
-
+                  final item = provider.evaluationItems[index];
                   return Container(
                     color: index % 2 == 0 ? Colors.white : Colors.grey[200],
                     child: Row(
                       children: [
-                        _buildStaticCell(provider.dataColumn1[index]),
-                        _buildStaticCell(provider.dataColumn2[index]),
-                        _buildEditableCell(provider.editableColumn3[index],
-                            (value) {
-                          provider.setEditable3Value(index, value);
-                        }),
-                        _buildEditableCell(provider.editableColumn4[index],
-                            (value) {
-                          provider.setEditable4Value(index, value);
-                        }),
+                        Expanded(
+                          flex: 3,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(item.detail, style: const TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(item.maxScore.toString(), style: const TextStyle(fontSize: 16)),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: TextFormField(
+                              initialValue: provider.scores[index],
+                              onChanged: (val) => provider.setScore(index, val),
+                              decoration: const InputDecoration(hintText: 'الدرجة'),
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: TextFormField(
+                              initialValue: provider.notes[index],
+                              onChanged: (val) => provider.setNote(index, val),
+                              decoration: const InputDecoration(hintText: 'ملاحظات'),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   );
@@ -290,34 +347,29 @@ class GradingTable extends StatelessWidget {
               child: !provider.isFileLoading
                   ? ElevatedButton(
                       onPressed: () async {
-                        final pdfData = await provider.generatePdf();
-                        if (project != null) {
-                          try {
-                            if (project?.firstGrading == null) {
-                              provider.uploadPdfFirstGrading(pdfData, project!);
-                            } else if (project?.secondGrading == null) {
-                              provider.uploadPdfSecondGrading(
-                                  pdfData, project!);
-                            } else {
-                              const success = SnackBar(
-                                content: Text("هذا المشروع مقييم مسبقا"),
-                              );
-                            }
-                            const success = SnackBar(
-                              content: Text("تم رفع الملف"),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(success);
-                          } catch (e) {
-                            final failed = SnackBar(
-                              content: Text(e.toString()),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(failed);
-                          }
-                        } else {
-                          const failed = SnackBar(
-                            content: Text('لم يتم تحديد مشروع'),
+                        // استخدم فقط TeacherProvider لجلب اسم المشرف إذا كان متاحًا
+                        final teacherProvider = context.read<TeacherProvider?>();
+                        String supervisorUsername = '';
+                        if (teacherProvider != null && teacherProvider.currentProject != null && teacherProvider.currentProject!.teacher != null && teacherProvider.currentProject!.teacher!.user != null) {
+                          supervisorUsername = teacherProvider.currentProject!.teacher!.user.username ?? '';
+                        }
+                        String studentName = studentNameController.text;
+                        String projectTitle = projectTitleController.text;
+                        final evalType = evaluationType;
+                        final pdfUrl = await provider.saveAndUploadPdf(
+                          supervisorUsername: supervisorUsername,
+                          studentName: studentName,
+                          projectTitle: projectTitle,
+                          evaluationType: evalType,
+                        );
+                        if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('تم رفع الملف بنجاح!\nرابط التحميل: $pdfUrl')),
                           );
-                          ScaffoldMessenger.of(context).showSnackBar(failed);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('فشل رفع الملف!')),
+                          );
                         }
                       },
                       child: const Text("حفظ النتيجة"))
@@ -327,45 +379,6 @@ class GradingTable extends StatelessWidget {
         ),
       );
     });
-  }
-
-  Widget _buildHeaderCell(String text) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 16.0, fontWeight: FontWeight.bold),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStaticCell(String text) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        child: Text(
-          text,
-          style: const TextStyle(fontSize: 16.0),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEditableCell(String text, ValueChanged<String> onChanged) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(8.0),
-        child: TextFormField(
-          initialValue: text,
-          onChanged: onChanged,
-          decoration: const InputDecoration(
-            border: InputBorder.none,
-          ),
-        ),
-      ),
-    );
   }
 }
 

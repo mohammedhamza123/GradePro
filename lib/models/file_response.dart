@@ -28,27 +28,27 @@ class FileResponse {
 
 class Data {
     Data({
-        required this.fileName,
-        required this.parentFolder,
-        required this.code,
-        required this.downloadPage,
-        required this.fileId,
-        required this.md5,
+        this.fileName,
+        this.parentFolder,
+        this.code,
+        this.downloadPage,
+        this.fileId,
+        this.md5,
     });
 
-    String fileName;
-    String parentFolder;
-    String code;
-    String downloadPage;
-    String fileId;
-    String md5;
+    String? fileName;
+    String? parentFolder;
+    String? code;
+    String? downloadPage;
+    String? fileId;
+    String? md5;
 
     factory Data.fromJson(Map<dynamic, dynamic> json) => Data(
         fileName: json["fileName"],
         parentFolder: json["parentFolder"],
         code: json["code"],
-        downloadPage: json["downloadPage"],
-        fileId: json["fileId"],
+        downloadPage: json["downloadPage"] ?? json["downloadPage"] ?? json["downloadPage"] ?? "",
+        fileId: json["fileId"] ?? json["id"],
         md5: json["md5"],
     );
 
