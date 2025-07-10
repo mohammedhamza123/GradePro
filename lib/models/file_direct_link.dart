@@ -12,23 +12,22 @@ class FileDirectLink {
         required this.status,
     });
 
-    Data data;
+    List<DirectLinkData> data;
     String status;
 
     factory FileDirectLink.fromJson(Map<dynamic, dynamic> json) => FileDirectLink(
-        data: Data.fromJson(json["data"]),
+        data: List<DirectLinkData>.from(json["data"].map((x) => DirectLinkData.fromJson(x))),
         status: json["status"],
     );
 
     Map<dynamic, dynamic> toJson() => {
-        "data": data.toJson(),
+        "data": List<dynamic>.from(data.map((x) => x.toJson())),
         "status": status,
-
     };
 }
 
-class Data {
-    Data({
+class DirectLinkData {
+    DirectLinkData({
         required this.directLink,
         required this.expireTime,
         required this.isReqLink,
@@ -46,7 +45,7 @@ class Data {
     List<dynamic> domainsAllowed;
     String id;
 
-    factory Data.fromJson(Map<dynamic, dynamic> json) => Data(
+    factory DirectLinkData.fromJson(Map<dynamic, dynamic> json) => DirectLinkData(
         directLink: json["directLink"],
         expireTime: json["expireTime"],
         isReqLink: json["isReqLink"],

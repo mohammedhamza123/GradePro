@@ -10,6 +10,7 @@ import '../models/logging_state.dart';
 import '../models/project_list.dart';
 import '../models/student_list.dart';
 import '../models/user_list.dart';
+import 'package:gradpro/models/teacher_details_list.dart';
 
 class UserProvider extends ChangeNotifier {
   final userServices = UserService();
@@ -31,6 +32,8 @@ class UserProvider extends ChangeNotifier {
   String _errorMessage = "";
   bool _isPendingApproval = false;
   Map<String, dynamic>? _pendingStudentData;
+  TeacherDetail? _teacherAccount;
+  TeacherDetail? get teacherAccount => _teacherAccount;
 
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
@@ -243,7 +246,13 @@ class UserProvider extends ChangeNotifier {
             return Logging.notUser;
           }
         case 3:
-          return Logging.teacher; // Teacher users
+          try {
+            // تحميل بيانات المعلم
+            await _loadTeacher();
+            return Logging.teacher; // Teacher users
+          } catch (e) {
+            return Logging.notUser;
+          }
         case 0:
           // مستخدم ليس له صلاحية
           return Logging.notUser;
@@ -391,6 +400,33 @@ class UserProvider extends ChangeNotifier {
       );
       notifyListeners();
     } else {
+    }
+  }
+
+  Future<void> _loadTeacher() async {
+    // إذا كان المعلم محمل بالفعل، لا نحمل مرة أخرى
+    if (_teacherAccount != null) {
+      return;
+    }
+    
+    if (_user != null) {
+      try {
+        // تحميل بيانات المعلم باستخدام getTeacher
+        final teacher = await getTeacher(_user!.id);
+        if (teacher != null) {
+          // تحويل Teacher إلى TeacherDetail أو استخدام البيانات المتاحة
+          _teacherAccount = TeacherDetail(
+            phoneNumber: teacher.phoneNumber,
+            id: teacher.id,
+            user: _user!, // استخدام _user المحمل مسبقاً
+            isExaminer: teacher.isExaminer,
+          );
+          
+          notifyListeners();
+        }
+      } catch (e) {
+        print('Error loading teacher data: $e');
+      }
     }
   }
 

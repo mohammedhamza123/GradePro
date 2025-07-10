@@ -14,6 +14,7 @@ import 'package:gradpro/providers/student_provider.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/teacher_provider.dart';
+import 'package:gradpro/providers/user_provider.dart';
 
 class StudentSuggestionList extends StatelessWidget {
   const StudentSuggestionList({super.key});
@@ -251,6 +252,15 @@ class _GradingTableState extends State<GradingTable> {
     if (widget.project != null) {
       projectTitleController.text = widget.project!.title ?? '';
     }
+    
+    // ضبط قيمة isExaminer في PdfProvider عند تحميل الصفحة
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider = context.read<UserProvider>();
+      final pdfProvider = context.read<PdfProvider>();
+      if (userProvider.teacherAccount != null) {
+        pdfProvider.setIsExaminer(userProvider.teacherAccount!.isExaminer);
+      }
+    });
   }
 
   @override
@@ -287,15 +297,44 @@ class _GradingTableState extends State<GradingTable> {
                       ),
                     ],
                   ),
+                  // الحقول حسب نوع المستخدم (ممتحن أو مشرف)
+                  provider.isExaminer
+                      ? TextFormField(
+                          initialValue: provider.examinerCollegeScore,
+                          onChanged: (val) => provider.setExaminerCollegeScore(val),
+                          decoration: const InputDecoration(labelText: 'درجة الكلية (من 25)'),
+                          keyboardType: TextInputType.number,
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: provider.coordinatorScore,
+                                onChanged: (val) => provider.setCoordinatorScore(val),
+                                decoration: const InputDecoration(labelText: 'درجة منسق المشاريع (من 5)'),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextFormField(
+                                initialValue: provider.headScore,
+                                onChanged: (val) => provider.setHeadScore(val),
+                                decoration: const InputDecoration(labelText: 'درجة رئيس القسم (من 5)'),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
                 ],
               ),
             ),
             Expanded(
               flex: 8,
               child: ListView.builder(
-                itemCount: provider.evaluationItems.length,
+                itemCount: provider.currentEvaluationItems.length,
                 itemBuilder: (context, index) {
-                  final item = provider.evaluationItems[index];
+                  final item = provider.currentEvaluationItems[index];
                   return Container(
                     color: index % 2 == 0 ? Colors.white : Colors.grey[200],
                     child: Row(
@@ -350,8 +389,12 @@ class _GradingTableState extends State<GradingTable> {
                         // استخدم فقط TeacherProvider لجلب اسم المشرف إذا كان متاحًا
                         final teacherProvider = context.read<TeacherProvider?>();
                         String supervisorUsername = '';
-                        if (teacherProvider != null && teacherProvider.currentProject != null && teacherProvider.currentProject!.teacher != null && teacherProvider.currentProject!.teacher!.user != null) {
-                          supervisorUsername = teacherProvider.currentProject!.teacher!.user.username ?? '';
+                        int projectId = 0;
+                        if (teacherProvider != null && teacherProvider.currentProject != null) {
+                          projectId = teacherProvider.currentProject!.id;
+                          if (teacherProvider.currentProject!.teacher != null && teacherProvider.currentProject!.teacher!.user != null) {
+                            supervisorUsername = teacherProvider.currentProject!.teacher!.user.username ?? '';
+                          }
                         }
                         String studentName = studentNameController.text;
                         String projectTitle = projectTitleController.text;
@@ -361,6 +404,7 @@ class _GradingTableState extends State<GradingTable> {
                           studentName: studentName,
                           projectTitle: projectTitle,
                           evaluationType: evalType,
+                          projectId: projectId,
                         );
                         if (pdfUrl != null && pdfUrl.isNotEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(

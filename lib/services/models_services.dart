@@ -289,23 +289,23 @@ Future<Project> patchProject(
   if (progression != null) {
     request["progression"] = progression;
   }
-  if (title != null || title != "") {
+  if (title != null && title != "") {
     request["title"] = title;
   }
   if (mainSuggestion != 0) {
     request["main_suggestion"] = mainSuggestion;
   }
-  if (image != null || image != "") {
+  if (image != null && image != "") {
     request["image"] = image;
   }
-  if (deliveryDate != "") {
+  if (deliveryDate != null && deliveryDate != "") {
     request["delivery_date"] = deliveryDate;
   }
   if (firstGrading != null) {
     request["first_grading"] = firstGrading;
   }
   if (secondGrading != null) {
-    request["second_grading"] = firstGrading;
+    request["second_grading"] = secondGrading;
   }
   if (teacherGrading != null) {
     request["teacher_grading"] = teacherGrading;

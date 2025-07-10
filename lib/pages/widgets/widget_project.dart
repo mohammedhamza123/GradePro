@@ -178,37 +178,68 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            IconButton(
-                                onPressed: () {
-                                  if (widget.project.firstGrading != null) {
-                                    provider
-                                        .setPdf(widget.project.firstGrading!);
-                                    Navigator.pushNamed(context, "/pdfViewer");
-                                  }
-                                },
-                                icon: const Icon(Icons.picture_as_pdf,
-                                    color: Colors.blue)),
-                            IconButton(
-                                onPressed: () {
-                                  if (widget.project.secondGrading != null) {
-                                    provider
-                                        .setPdf(widget.project.secondGrading!);
-                                    Navigator.pushNamed(context, "/pdfViewer");
-                                  }
-                                },
-                                icon: const Icon(
-                                  Icons.picture_as_pdf,
-                                  color: Colors.blue,
-                                )),
-                            IconButton(
-                                onPressed: () {
-                                  if (widget.project.teacherGrading != null) {
-                                    provider
-                                        .setPdf(widget.project.teacherGrading!);
-                                    Navigator.pushNamed(context, "/pdfViewer");
-                                  }
-                                },
-                                icon: const Icon(Icons.picture_as_pdf)),
+                            Tooltip(
+                              message: widget.project.firstGrading != null 
+                                ? "عرض التقييم الأول" 
+                                : "لا يوجد تقييم أول",
+                              child: IconButton(
+                                  onPressed: () {
+                                    if (widget.project.firstGrading != null) {
+                                      provider
+                                          .setPdf(widget.project.firstGrading!);
+                                      Navigator.pushNamed(context, "/pdfViewer");
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("لا يوجد تقييم أول محفوظ")),
+                                      );
+                                    }
+                                  },
+                                  icon: Icon(Icons.picture_as_pdf,
+                                      color: widget.project.firstGrading != null ? Colors.blue : Colors.grey)),
+                            ),
+                            Tooltip(
+                              message: widget.project.secondGrading != null 
+                                ? "عرض التقييم الثاني" 
+                                : "لا يوجد تقييم ثاني",
+                              child: IconButton(
+                                  onPressed: () {
+                                    if (widget.project.secondGrading != null) {
+                                      provider
+                                          .setPdf(widget.project.secondGrading!);
+                                      Navigator.pushNamed(context, "/pdfViewer");
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("لا يوجد تقييم ثاني محفوظ")),
+                                      );
+                                    }
+                                  },
+                                  icon: Icon(
+                                    Icons.picture_as_pdf,
+                                    color: widget.project.secondGrading != null ? Colors.green : Colors.grey,
+                                  )),
+                            ),
+                            Tooltip(
+                              message: widget.project.teacherGrading != null 
+                                ? "عرض تقييم المشرف" 
+                                : "لا يوجد تقييم مشرف محفوظ",
+                              child: IconButton(
+                                  onPressed: () {
+                                    print('Teacher grading icon pressed');
+                                    print('teacherGrading value: ${widget.project.teacherGrading}');
+                                    if (widget.project.teacherGrading != null) {
+                                      print('Setting PDF URL: ${widget.project.teacherGrading}');
+                                      provider.setPdf(widget.project.teacherGrading!);
+                                      print('Navigating to PDF viewer');
+                                      Navigator.pushNamed(context, "/pdfViewer");
+                                    } else {
+                                      print('No teacher grading found');
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text("لا يوجد تقييم مشرف محفوظ")),
+                                      );
+                                    }
+                                  },
+                                  icon: Icon(Icons.picture_as_pdf,
+                                      color: widget.project.teacherGrading != null ? Colors.orange : Colors.grey))),
                           ],
                         );
                       }),
