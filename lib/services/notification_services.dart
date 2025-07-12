@@ -141,7 +141,7 @@ class NotificationService {
       
       // استخدام نفس endpoint مثل getStudent
       final response = await http.get(
-        Uri.parse("https://easy0123.pythonanywhere.com/student/?user=$userId"),
+        Uri.parse("${InternetService.baseUrl}/student/?user=$userId"),
         headers: {
           "Content-Type": "application/json",
         },

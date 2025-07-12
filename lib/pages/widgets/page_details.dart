@@ -178,6 +178,13 @@ class StudentDetails extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            // عرض الدرجة النهائية المحسوبة
+                            Consumer<StudentProvider>(
+                              builder: (context, studentProvider, _) {
+                                // سيتم إضافة عرض الدرجة النهائية لاحقاً عندما يتم إضافة currentProjectDetail
+                                return const SizedBox.shrink();
+                              },
+                            ),
                             Flexible(
                               flex: 3,
                               child: Stack(

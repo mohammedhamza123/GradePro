@@ -281,7 +281,8 @@ Future<Project> patchProject(
     required int? mainSuggestion,
     String? firstGrading,
     String? secondGrading,
-    String? teacherGrading}) async {
+    String? teacherGrading,
+    double? finalScore}) async {
   Map<String, dynamic> request = <String, dynamic>{};
   if (teacher != 0) {
     request["teacher"] = teacher;
@@ -309,6 +310,9 @@ Future<Project> patchProject(
   }
   if (teacherGrading != null) {
     request["teacher_grading"] = teacherGrading;
+  }
+  if (finalScore != null) {
+    request["final_score"] = finalScore;
   }
   http.Response response = await services.patch("$PROJECT$id/", request);
   final body = responseDecoder(response);
@@ -433,7 +437,7 @@ Future<Requirement> patchRequirement(
 }
 
 Future<User?> registerUser(Map<String, dynamic> user) async {
-  final url = Uri.parse("https://easy0123.pythonanywhere.com$REGISTER");
+  final url = Uri.parse("${InternetService.baseUrl}$REGISTER");
   print("Attempting registration to: $url");
   print("User data: ${jsonEncode(user)}");
   
@@ -611,7 +615,7 @@ Future<StudentDetailsList> getPendingStudents() async {
 Future<bool> checkStudentApprovalStatus(String username) async {
   try {
     final userResponse = await http.get(
-      Uri.parse("https://easy0123.pythonanywhere.com$USER?username=$username"),
+      Uri.parse("${InternetService.baseUrl}$USER?username=$username"),
       headers: {
         "Content-Type": "application/json",
       },
@@ -623,7 +627,7 @@ Future<bool> checkStudentApprovalStatus(String username) async {
         final userId = userData[0]['id'];
         
         final studentResponse = await http.get(
-          Uri.parse("https://easy0123.pythonanywhere.com$STUDENT?user=$userId"),
+          Uri.parse("${InternetService.baseUrl}$STUDENT?user=$userId"),
           headers: {
             "Content-Type": "application/json",
           },
@@ -644,4 +648,18 @@ Future<bool> checkStudentApprovalStatus(String username) async {
   } catch (e) {
     return false;
   }
+}
+
+// دالة جديدة لحفظ الدرجة النهائية المحسوبة
+Future<Project> saveFinalScore(int projectId, double finalScore) async {
+  Map<String, dynamic> request = <String, dynamic>{
+    "final_score": finalScore,
+  };
+  
+  http.Response response = await services.patch("$PROJECT$projectId/", request);
+  final body = responseDecoder(response);
+  if (response.statusCode != 200) {
+    throw Exception('${response.statusCode}:${response.body}');
+  }
+  return Project.fromJson(jsonDecode(body));
 }

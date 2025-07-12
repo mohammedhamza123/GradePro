@@ -100,9 +100,16 @@ class TeacherProvider extends ChangeNotifier {
 
   List<ProjectDetail> setTeacherProjects() {
     if (_projectList.isNotEmpty && teacher != null) {
-      return _projectList
-          .where((element) => element.teacher?.id == _teacher!.id)
-          .toList();
+      if (teacher!.isExaminer) {
+        // إذا كان ممتحن، أظهر المشاريع التي هو ممتحن لها
+        return _projectList.where((element) =>
+          (element.examiner1Raw != null && element.teacher?.id == teacher!.id) ||
+          (element.examiner2Raw != null && element.teacher?.id == teacher!.id)
+        ).toList();
+      } else {
+        // إذا كان مشرف، أظهر المشاريع التي هو مشرف عليها
+        return _projectList.where((element) => element.teacher?.id == teacher!.id).toList();
+      }
     } else {
       return [];
     }

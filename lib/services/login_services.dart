@@ -83,8 +83,40 @@ class LoginService {
         {"username": username, "password": password}
       );
 
+      // Debug logging
+      print('DEBUG: Login response status: ${tokenBody.statusCode}');
+      print('DEBUG: Login response body: ${tokenBody.body}');
+
+      // Check both status code and response body
       if (tokenBody.statusCode != 200) {
         throw Exception('فشل في تسجيل الدخول. يرجى التحقق من بياناتك.');
+      }
+
+      // Parse response body to check for error messages
+      try {
+        final responseData = json.decode(tokenBody.body);
+        
+        // Check if response contains error message
+        if (responseData.containsKey('detail') || 
+            responseData.containsKey('error') || 
+            responseData.containsKey('message')) {
+          String errorMessage = responseData['detail'] ?? 
+                               responseData['error'] ?? 
+                               responseData['message'] ?? 
+                               'اسم المستخدم أو كلمة المرور غير صحيحة';
+          throw Exception(errorMessage);
+        }
+        
+        // Check if response contains required token fields
+        if (!responseData.containsKey('access') || !responseData.containsKey('refresh')) {
+          throw Exception('استجابة غير صحيحة من الخادم');
+        }
+        
+      } catch (e) {
+        if (e is FormatException) {
+          throw Exception('استجابة غير صحيحة من الخادم');
+        }
+        rethrow; // Re-throw if it's already an Exception
       }
 
       // Parse token response - NewToken contains both access and refresh tokens

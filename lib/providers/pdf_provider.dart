@@ -3,11 +3,27 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:gradpro/models/project_details_list.dart';
-import 'package:pdf/pdf.dart';
+import 'package:pdf/pdf.dart' as pdf;
 import 'package:pdf/widgets.dart' as pw;
 import '../pages/widgets/widget_pdf.dart';
 import '../services/file_services.dart';
 import '../services/models_services.dart'; // Add this import
+import 'package:path_provider/path_provider.dart';
+import 'dart:convert'; // Added for jsonDecode
+import 'package:http/http.dart' as http; // Added for http
+import '../services/internet_services.dart'; // Added for InternetService
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart' as sfp;
+
+// دالة عامة لإنشاء ملف مؤقت من Uint8List
+Future<File> createTemporaryFile(Uint8List uint8List) async {
+  Directory tempDir = await Directory.systemTemp.createTemp('temp_directory');
+  String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+  File tempFile = File('${tempDir.path}/$fileName');
+  await tempFile.writeAsBytes(uint8List);
+  return tempFile;
+}
 
 class EvaluationItem {
   final String section;
@@ -205,7 +221,7 @@ class PdfProvider extends ChangeNotifier {
     required String projectTitle,
     required String evaluationType,
   }) async {
-    final pdf = pw.Document();
+    final pdfDoc = pw.Document();
 
     // حساب مجموع الدرجات المدخلة
     int totalScore = 0;
@@ -220,9 +236,9 @@ class PdfProvider extends ChangeNotifier {
     // استخدم البنود حسب نوع المستخدم
     final items = currentEvaluationItems;
 
-    pdf.addPage(
+    pdfDoc.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a4,
+        pageFormat: pdf.PdfPageFormat.a4,
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -316,23 +332,7 @@ class PdfProvider extends ChangeNotifier {
         },
       ),
     );
-    return pdf.save();
-  }
-
-  Future<File> createTemporaryFile(Uint8List uint8List) async {
-    // Create a temporary directory
-    Directory tempDir = await Directory.systemTemp.createTemp('temp_directory');
-
-    // Generate a unique file name
-    String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-
-    // Create a temporary file within the temporary directory
-    File tempFile = File('${tempDir.path}/$fileName');
-
-    // Write the Uint8List data to the temporary file
-    await tempFile.writeAsBytes(uint8List);
-
-    return tempFile;
+    return pdfDoc.save();
   }
 
   Future<void> uploadPdf(Uint8List uint8listFile, int project) async {
@@ -498,4 +498,179 @@ class PdfProvider extends ChangeNotifier {
     int h = int.tryParse(headScore) ?? 0;
     return (c + h).toString();
   }
+
+  /// رفع PDF ممتحن أول مع حفظ الدرجة الخام
+  Future<String?> uploadExaminer1PdfAndScore({
+    required Uint8List pdfBytes,
+    required double rawScore, // الدرجة من 500
+    required ProjectDetail project,
+  }) async {
+    File tempFile = await createTemporaryFile(Uint8List.fromList(pdfBytes));
+    final fileResponse = await FileService().uploadFile(tempFile);
+    String? pdfUrl = fileResponse?.data.downloadPage;
+    await patchProject(
+      id: project.id,
+      teacher: project.teacher?.id ?? 0,
+      progression: project.progression,
+      deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
+      mainSuggestion: project.mainSuggestion?.id ?? 0,
+      firstGrading: rawScore.toString(),
+    );
+    
+    // حساب وحفظ الدرجة النهائية
+    await _calculateAndSaveFinalScore(project.id);
+    return pdfUrl;
+  }
+
+  /// رفع PDF ممتحن ثاني مع حفظ الدرجة الخام
+  Future<String?> uploadExaminer2PdfAndScore({
+    required Uint8List pdfBytes,
+    required double rawScore, // الدرجة من 500
+    required ProjectDetail project,
+  }) async {
+    File tempFile = await createTemporaryFile(Uint8List.fromList(pdfBytes));
+    final fileResponse = await FileService().uploadFile(tempFile);
+    String? pdfUrl = fileResponse?.data.downloadPage;
+    await patchProject(
+      id: project.id,
+      teacher: project.teacher?.id ?? 0,
+      progression: project.progression,
+      deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
+      mainSuggestion: project.mainSuggestion?.id ?? 0,
+      secondGrading: rawScore.toString(),
+    );
+    
+    // حساب وحفظ الدرجة النهائية
+    await _calculateAndSaveFinalScore(project.id);
+    return pdfUrl;
+  }
+
+  /// رفع PDF المشرف مع حفظ الدرجات (المشرف، رئيس القسم، المنسق)
+  Future<String?> uploadSupervisorPdfAndScores({
+    required Uint8List pdfBytes,
+    required double supervisorRaw, // من 500
+    required double headScore,     // من 5
+    required double coordinatorScore, // من 5
+    required ProjectDetail project,
+  }) async {
+    File tempFile = await createTemporaryFile(Uint8List.fromList(pdfBytes));
+    final fileResponse = await FileService().uploadFile(tempFile);
+    String? pdfUrl = fileResponse?.data.downloadPage;
+    await patchProject(
+      id: project.id,
+      teacher: project.teacher?.id ?? 0,
+      progression: project.progression,
+      deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
+      mainSuggestion: project.mainSuggestion?.id ?? 0,
+      teacherGrading: supervisorRaw.toString(),
+      finalScore: null, // سيتم حسابها تلقائياً
+    );
+    
+    // حساب وحفظ الدرجة النهائية
+    await _calculateAndSaveFinalScore(project.id);
+    return pdfUrl;
+  }
+
+  /// دالة خاصة لحساب وحفظ الدرجة النهائية
+  Future<void> _calculateAndSaveFinalScore(int projectId) async {
+    try {
+      // جلب بيانات المشروع المحدثة
+      final projectResponse = await http.get(
+        Uri.parse("${InternetService.baseUrl}/project/$projectId/"),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      );
+      
+      if (projectResponse.statusCode == 200) {
+        final projectData = jsonDecode(projectResponse.body);
+        final project = ProjectDetail.fromJson(projectData);
+        
+        // حساب الدرجة النهائية
+        final finalScore = project.calculatedFinalScore;
+        
+        if (finalScore != null) {
+          // حفظ الدرجة النهائية
+          await saveFinalScore(projectId, finalScore);
+          print('Final score calculated and saved: $finalScore');
+        } else {
+          print('Cannot calculate final score yet - missing required evaluations');
+        }
+      }
+    } catch (e) {
+      print('Error calculating final score: $e');
+    }
+  }
+
+  /// دالة لحفظ الدرجة النهائية
+  Future<void> saveFinalScore(int projectId, double finalScore) async {
+    try {
+      await patchProject(
+        id: projectId,
+        teacher: 0,
+        title: "",
+        image: "",
+        progression: null,
+        deliveryDate: "",
+        mainSuggestion: 0,
+        finalScore: finalScore,
+      );
+      print('Final score saved successfully: $finalScore');
+    } catch (e) {
+      print('Error saving final score: $e');
+    }
+  }
 }
+
+Future<String> extractTextFromPdf(String filePath) async {
+  final file = File(filePath);
+  final bytes = await file.readAsBytes();
+  final document = sfp.PdfDocument(inputBytes: bytes);
+  // String text = PdfTextExtractor(document).extractText(); // Removed: pdf_text package does not exist
+  document.dispose();
+  return ""; // Return empty string as pdf_text is removed
+}
+
+Future<void> pickExtractAndUploadPdf({
+  required int projectId,
+  required String role, // 'examiner1', 'examiner2', 'supervisor', 'head', 'coordinator'
+  required BuildContext context,
+}) async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
+  if (result != null && result.files.single.path != null) {
+    final filePath = result.files.single.path!;
+
+    // استخراج النص من PDF باستخدام syncfusion
+    String text = await extractTextFromPdf(filePath);
+
+    RegExp reg = RegExp(r"الدرجة\s*:? 0*(\d+)");
+    final match = reg.firstMatch(text);
+    if (match == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("لم يتم العثور على الدرجة في الملف")),
+      );
+      return;
+    }
+    double grade = double.parse(match.group(1)!);
+
+    var request = http.MultipartRequest(
+      'POST',
+      Uri.parse('http://your-backend-url/api/project/$projectId/upload-grade/'),
+    );
+    request.fields['role'] = role;
+    request.fields['grade'] = grade.toString();
+    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    var response = await request.send();
+    if (response.statusCode == 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("تم رفع الملف وحفظ الدرجة بنجاح")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("فشل في رفع الملف أو حفظ الدرجة")),
+      );
+    }
+  }
+}
+

@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:gradpro/models/project_details_list.dart';
 import '../models/suggestion_list.dart';
 import '../services/models_services.dart';
+import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 class AdminEditProjectProvider extends ChangeNotifier {
   ProjectDetail? _project;
@@ -193,6 +195,35 @@ class AdminEditProjectProvider extends ChangeNotifier {
       return null;
     }
     return null;
+  }
+
+  Future<bool> uploadGradePdf({
+    required int projectId,
+    required String role, // 'examiner1', 'examiner2', 'supervisor', 'head', 'coordinator'
+    required double grade,
+  }) async {
+    // اختيار ملف PDF
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
+    if (result != null && result.files.single.path != null) {
+      final filePath = result.files.single.path!;
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://your-backend-url/api/project/ $projectId/upload-grade/'),
+      );
+      request.fields['role'] = role;
+      request.fields['grade'] = grade.toString();
+      request.files.add(await http.MultipartFile.fromPath('file', filePath));
+
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        // تم رفع الملف وحفظ الدرجة بنجاح
+        return true;
+      } else {
+        // فشل في رفع الملف أو حفظ الدرجة
+        return false;
+      }
+    }
+    return false;
   }
 }
 

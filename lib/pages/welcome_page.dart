@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:gradpro/providers/user_provider.dart';
@@ -16,11 +17,36 @@ class _WelcomePageState extends State<WelcomePage> {
   bool _isCheckingToken = false;
   bool _hasCheckedToken = false;
 
+  // متغيرات الكتابة التدريجية للنص الرئيسي فقط
+  final String fullText = 'مرحبًا بكم في نظام إدارة مشاريع التخرج';
+  String displayedText = '';
+  int _currentIndex = 0;
+  Timer? _typingTimer;
+
   @override
   void initState() {
     super.initState();
-    // تحقق من التوكن عند بدء الصفحة
     _checkTokenOnStart();
+    _startTypingEffect();
+  }
+
+  void _startTypingEffect() {
+    _typingTimer = Timer.periodic(const Duration(milliseconds: 60), (timer) {
+      if (_currentIndex < fullText.length) {
+        setState(() {
+          displayedText += fullText[_currentIndex];
+          _currentIndex++;
+        });
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _typingTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkTokenOnStart() async {
@@ -72,7 +98,7 @@ class _WelcomePageState extends State<WelcomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xfff5f6fa),
+      backgroundColor: const Color(0xfff5f6fa),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -85,9 +111,10 @@ class _WelcomePageState extends State<WelcomePage> {
                   height: 400,
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'مرحبًا بكم في نظام إدارة مشاريع التخرج',
-                  style: TextStyle(
+                // نص متدرج تدريجي فقط
+                Text(
+                  displayedText,
+                  style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                     color: Color(0xff00577B),
@@ -129,12 +156,12 @@ class _WelcomePageState extends State<WelcomePage> {
                         showDialog(
                           context: context,
                           builder: (context) => AlertDialog(
-                            title: Text('خطأ في الاتصال'),
-                            content: Text('تعذر الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.'),
+                            title: const Text('خطأ في الاتصال'),
+                            content: const Text('تعذر الاتصال بالسيرفر. تأكد من الشبكة وحاول مرة أخرى.'),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.of(context).pop(),
-                                child: Text('حسناً'),
+                                child: const Text('حسناً'),
                               ),
                             ],
                           ),

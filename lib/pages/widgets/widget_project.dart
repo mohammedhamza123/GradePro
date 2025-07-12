@@ -179,14 +179,14 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Tooltip(
-                              message: widget.project.firstGrading != null 
+                              message: widget.project.examiner1Raw != null 
                                 ? "عرض التقييم الأول" 
                                 : "لا يوجد تقييم أول",
                               child: IconButton(
                                   onPressed: () {
-                                    if (widget.project.firstGrading != null) {
+                                    if (widget.project.examiner1Raw != null) {
                                       provider
-                                          .setPdf(widget.project.firstGrading!);
+                                          .setPdf(widget.project.examiner1Raw!.toString());
                                       Navigator.pushNamed(context, "/pdfViewer");
                                     } else {
                                       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,17 +195,17 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                                     }
                                   },
                                   icon: Icon(Icons.picture_as_pdf,
-                                      color: widget.project.firstGrading != null ? Colors.blue : Colors.grey)),
+                                      color: widget.project.examiner1Raw != null ? Colors.blue : Colors.grey)),
                             ),
                             Tooltip(
-                              message: widget.project.secondGrading != null 
+                              message: widget.project.examiner2Raw != null 
                                 ? "عرض التقييم الثاني" 
                                 : "لا يوجد تقييم ثاني",
                               child: IconButton(
                                   onPressed: () {
-                                    if (widget.project.secondGrading != null) {
+                                    if (widget.project.examiner2Raw != null) {
                                       provider
-                                          .setPdf(widget.project.secondGrading!);
+                                          .setPdf(widget.project.examiner2Raw!.toString());
                                       Navigator.pushNamed(context, "/pdfViewer");
                                     } else {
                                       ScaffoldMessenger.of(context).showSnackBar(
@@ -215,31 +215,30 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                                   },
                                   icon: Icon(
                                     Icons.picture_as_pdf,
-                                    color: widget.project.secondGrading != null ? Colors.green : Colors.grey,
+                                    color: widget.project.examiner2Raw != null ? Colors.green : Colors.grey,
                                   )),
                             ),
                             Tooltip(
-                              message: widget.project.teacherGrading != null 
+                              message: widget.project.supervisorRaw != null 
                                 ? "عرض تقييم المشرف" 
                                 : "لا يوجد تقييم مشرف محفوظ",
                               child: IconButton(
                                   onPressed: () {
-                                    print('Teacher grading icon pressed');
-                                    print('teacherGrading value: ${widget.project.teacherGrading}');
-                                    if (widget.project.teacherGrading != null) {
-                                      print('Setting PDF URL: ${widget.project.teacherGrading}');
-                                      provider.setPdf(widget.project.teacherGrading!);
+                                    print('supervisorRaw value:  [widget.project.supervisorRaw]');
+                                    if (widget.project.supervisorRaw != null) {
+                                      print('Setting PDF URL:  [widget.project.supervisorRaw]');
+                                      provider.setPdf(widget.project.supervisorRaw!.toString());
                                       print('Navigating to PDF viewer');
                                       Navigator.pushNamed(context, "/pdfViewer");
                                     } else {
-                                      print('No teacher grading found');
+                                      print('No supervisor grading found');
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text("لا يوجد تقييم مشرف محفوظ")),
                                       );
                                     }
                                   },
                                   icon: Icon(Icons.picture_as_pdf,
-                                      color: widget.project.teacherGrading != null ? Colors.orange : Colors.grey))),
+                                      color: widget.project.supervisorRaw != null ? Colors.orange : Colors.grey))),
                           ],
                         );
                       }),

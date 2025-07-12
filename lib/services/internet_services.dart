@@ -2,20 +2,22 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:gradpro/services/token_manager.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class InternetService {
   static final InternetService _internetService = InternetService._internal();
-  //static const String _urlString = "http://10.0.2.2:8000";
-    static const String _urlString = "https://easy0123.pythonanywhere.com";
-  //static const String _urlString = "http://127.0.0.1:8000";
-  //static const String _urlString = "http://192.168.2.129:8000";
+  //static const String _urlString = "http://192.168.2.116:8000";
+  // static const String _urlString = "http://10.0.2.2:8000";
+  static const String _urlString = "https://easy0123.pythonanywhere.com";
+  // static const String _urlString =
+  //     "https://collegeprojectschecker.onrender.com";
   String _token = "";
+
+  // Getter للوصول إلى URL من خارج الكلاس
+  static String get baseUrl => _urlString;
 
   // const username = "tahasuperuser";
   // const password = "";
- 
   factory InternetService() {
     return _internetService;
   }
@@ -33,31 +35,41 @@ class InternetService {
       urlString = _urlString + endpoint;
     }
     final url = Uri.parse(urlString);
-    
+
     Map<String, String> headers = {
       HttpHeaders.contentTypeHeader: 'application/json',
     };
-    
+
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
+      print(
+          'DEBUG: GET request to $endpoint with token: ${_token.substring(0, 20)}...');
+    } else {
+      print('DEBUG: GET request to $endpoint without token');
     }
-    
+
     return http.get(url, headers: headers);
   }
 
   Future<http.Response> post(String endpoint, Map<String, dynamic> data) {
     final url = Uri.parse(_urlString + endpoint);
-    
+
     Map<String, String> headers = {
       "Content-Type": "application/json",
     };
-    
+
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
+      print(
+          'DEBUG: POST request to $endpoint with token: ${_token.substring(0, 20)}...');
+    } else {
+      print('DEBUG: POST request to $endpoint without token');
     }
-    
+
+    print('DEBUG: POST data: $data');
+
     return http.post(
       url,
       headers: headers,
@@ -68,16 +80,16 @@ class InternetService {
 
   Future<http.Response> patch(String endpoint, Map<String, dynamic> data) {
     final url = Uri.parse(_urlString + endpoint);
-    
+
     Map<String, String> headers = {
       "Content-Type": "application/json",
     };
-    
+
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
     }
-    
+
     return http.patch(
       url,
       headers: headers,
@@ -88,16 +100,16 @@ class InternetService {
 
   Future<http.Response> put(String endpoint, Map<String, dynamic> data) {
     final url = Uri.parse(_urlString + endpoint);
-    
+
     Map<String, String> headers = {
       "Content-Type": "application/json",
     };
-    
+
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
     }
-    
+
     return http.put(
       url,
       headers: headers,
@@ -108,16 +120,16 @@ class InternetService {
 
   Future<http.Response> delete(String endpoint) {
     final url = Uri.parse(_urlString + endpoint);
-    
+
     Map<String, String> headers = {
       "Content-Type": "application/json",
     };
-    
+
     // Only add Authorization header if token is not empty
     if (_token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_token';
     }
-    
+
     return http.delete(
       url,
       headers: headers,
@@ -146,10 +158,12 @@ class InternetService {
   }
 
   void setToken(String token) {
+    print('DEBUG: Setting token: ${token.substring(0, 20)}...');
     _token = token;
   }
 
   void removeToken() {
+    print('DEBUG: Removing token');
     _token = "";
   }
 
@@ -167,26 +181,13 @@ class InternetService {
 
   // تحميل التوكن من SharedPreferences
   Future<void> loadTokenFromPrefs() async {
-    try {
-      // إذا كان التوكن محمل بالفعل، لا حاجة لإعادة التحميل
-      if (_token.isNotEmpty) {
-        return;
-      }
-      
-      final token = await TokenManager.getAccessToken();
-      
-      if (token != null && token.isNotEmpty) {
-        setToken(token);
-      }
-    } catch (e) {
-    }
-  }
-
-  // دالة لتحميل التوكن عند بدء التطبيق
-  Future<void> _loadTokenOnInit() async {
-    try {
-      await loadTokenFromPrefs();
-    } catch (e) {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("access");
+    if (token != null && token.isNotEmpty) {
+      setToken(token);
+      print('DEBUG: Loaded access token from prefs');
+    } else {
+      print('DEBUG: No access token found in prefs');
     }
   }
 }

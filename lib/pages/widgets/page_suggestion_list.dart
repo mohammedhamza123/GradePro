@@ -257,9 +257,7 @@ class _GradingTableState extends State<GradingTable> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider = context.read<UserProvider>();
       final pdfProvider = context.read<PdfProvider>();
-      if (userProvider.teacherAccount != null) {
-        pdfProvider.setIsExaminer(userProvider.teacherAccount!.isExaminer);
-      }
+      pdfProvider.setIsExaminer(userProvider.isCurrentUserExaminer);
     });
   }
 
@@ -382,34 +380,157 @@ class _GradingTableState extends State<GradingTable> {
                 },
               ),
             ),
+            // عرض الدرجة النهائية المحسوبة
+            Consumer<TeacherProvider>(
+              builder: (context, teacherProvider, _) {
+                if (teacherProvider.currentProject != null) {
+                  final project = teacherProvider.currentProject!;
+                  final finalScore = project.calculatedFinalScore;
+                  final isComplete = project.isEvaluationComplete;
+                  final evaluatorsCount = project.numberOfEvaluators;
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(16.0),
+                    margin: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: isComplete ? Colors.green[50] : Colors.orange[50],
+                      border: Border.all(
+                        color: isComplete ? Colors.green : Colors.orange,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'حالة التقييم',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isComplete ? Colors.green[800] : Colors.orange[800],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text('عدد المقيمين: $evaluatorsCount'),
+                        Text('اكتمال التقييم: ${isComplete ? "نعم" : "لا"}'),
+                        if (finalScore != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'الدرجة النهائية: ${finalScore.toStringAsFixed(2)} من 100',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ] else ...[
+                          const SizedBox(height: 8),
+                          const Text(
+                            'الدرجة النهائية: غير محسوبة بعد',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Text(
+                          'الشرط: المشرف + ممتحنين اثنين على الأقل',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
             Flexible(
               child: !provider.isFileLoading
                   ? ElevatedButton(
                       onPressed: () async {
-                        // استخدم فقط TeacherProvider لجلب اسم المشرف إذا كان متاحًا
                         final teacherProvider = context.read<TeacherProvider?>();
+                        final userProvider = context.read<UserProvider?>();
                         String supervisorUsername = '';
                         int projectId = 0;
+                        ProjectDetail? project;
+                        int? teacherId;
                         if (teacherProvider != null && teacherProvider.currentProject != null) {
-                          projectId = teacherProvider.currentProject!.id;
+                          project = teacherProvider.currentProject;
+                          projectId = project?.id ?? 0;
                           if (teacherProvider.currentProject!.teacher != null && teacherProvider.currentProject!.teacher!.user != null) {
                             supervisorUsername = teacherProvider.currentProject!.teacher!.user.username ?? '';
                           }
                         }
+                        if (teacherProvider != null && teacherProvider.teacher != null) {
+                          teacherId = teacherProvider.teacher!.id;
+                        }
                         String studentName = studentNameController.text;
                         String projectTitle = projectTitleController.text;
                         final evalType = evaluationType;
-                        final pdfUrl = await provider.saveAndUploadPdf(
-                          supervisorUsername: supervisorUsername,
-                          studentName: studentName,
-                          projectTitle: projectTitle,
-                          evaluationType: evalType,
-                          projectId: projectId,
-                        );
+                        String? pdfUrl;
+                        if (project != null && teacherId != null) {
+                          // تحديد الدور الفعلي للأستاذ في المشروع
+                          if (project.teacher?.id == teacherId) {
+                            // مشرف
+                            double supervisorRaw = provider.scores.fold(0, (prev, s) => prev + (int.tryParse(s) ?? 0)).toDouble();
+                            double headScore = double.tryParse(provider.headScore) ?? 0;
+                            double coordinatorScore = double.tryParse(provider.coordinatorScore) ?? 0;
+                            pdfUrl = await provider.uploadSupervisorPdfAndScores(
+                              pdfBytes: await provider.generatePdf(
+                                supervisorUsername: supervisorUsername,
+                                studentName: studentName,
+                                projectTitle: projectTitle,
+                                evaluationType: evalType,
+                              ),
+                              supervisorRaw: supervisorRaw,
+                              headScore: headScore,
+                              coordinatorScore: coordinatorScore,
+                              project: project,
+                            );
+                          } else if (project.examiner1Raw == null) {
+                            // ممتحن أول (إذا لم يتم التقييم بعد)
+                            double rawScore = provider.scores.fold(0, (prev, s) => prev + (int.tryParse(s) ?? 0)).toDouble();
+                            pdfUrl = await provider.uploadExaminer1PdfAndScore(
+                              pdfBytes: await provider.generatePdf(
+                                supervisorUsername: supervisorUsername,
+                                studentName: studentName,
+                                projectTitle: projectTitle,
+                                evaluationType: evalType,
+                              ),
+                              rawScore: rawScore,
+                              project: project,
+                            );
+                          } else if (project.examiner2Raw == null) {
+                            // ممتحن ثاني (إذا لم يتم التقييم بعد)
+                            double rawScore = provider.scores.fold(0, (prev, s) => prev + (int.tryParse(s) ?? 0)).toDouble();
+                            pdfUrl = await provider.uploadExaminer2PdfAndScore(
+                              pdfBytes: await provider.generatePdf(
+                                supervisorUsername: supervisorUsername,
+                                studentName: studentName,
+                                projectTitle: projectTitle,
+                                evaluationType: evalType,
+                              ),
+                              rawScore: rawScore,
+                              project: project,
+                            );
+                          } else {
+                            // إذا كان التقييم مكتمل أو الدور غير معروف
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم تقييم هذا المشروع بالفعل أو لا يمكنك التقييم')),
+                            );
+                            return;
+                          }
+                        }
                         if (pdfUrl != null && pdfUrl.isNotEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('تم رفع الملف بنجاح!\nرابط التحميل: $pdfUrl')),
                           );
+                        } else if (pdfUrl == null) {
+                          // تم التعامل مع الحالة أعلاه
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('فشل رفع الملف!')),

@@ -35,6 +35,9 @@ class UserProvider extends ChangeNotifier {
   TeacherDetail? _teacherAccount;
   TeacherDetail? get teacherAccount => _teacherAccount;
 
+  /// هل المستخدم الحالي ممتحن؟
+  bool get isCurrentUserExaminer => teacherAccount?.isExaminer ?? false;
+
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
 
@@ -121,6 +124,12 @@ class UserProvider extends ChangeNotifier {
           // Load user and set group after successful login
           await _loadUser(emailController.value.text);
           _group = _user?.groups.first ?? 0; // Default to 0 for regular users
+          
+          // Debug logging
+          print('DEBUG: User loaded: ${_user?.username}');
+          print('DEBUG: User groups: ${_user?.groups}');
+          print('DEBUG: Selected group: $_group');
+          print('DEBUG: User data: ${_user?.toJson()}');
           
           // تحقق إضافي: إذا كان المستخدم طالب (group=2)، تحقق من اعتماده
           if (_group == 2) {
@@ -229,38 +238,53 @@ class UserProvider extends ChangeNotifier {
       await _loadUser();
     }
 
+    // Debug logging
+    print('DEBUG: _switchLogin - User: ${_user?.username}');
+    print('DEBUG: _switchLogin - Group: $_group');
+    print('DEBUG: _switchLogin - User groups: ${_user?.groups}');
+
     // Now check if we have a valid user
     if (_user != null) {
       switch (_group) {
         case 1:
+          print('DEBUG: _switchLogin - Returning admin');
           return Logging.admin; // Admin users
         case 2:
           try {
+            print('DEBUG: _switchLogin - Loading student data');
             // تحقق من أن الطالب محمل بالفعل
             if (_studentAccount == null) {
               await _loadStudent();
             }
             await _loadProject();
+            print('DEBUG: _switchLogin - Returning student');
             return Logging.student; // Student users
           } catch (e) {
+            print('DEBUG: _switchLogin - Student load error: $e');
             return Logging.notUser;
           }
         case 3:
           try {
+            print('DEBUG: _switchLogin - Loading teacher data');
             // تحميل بيانات المعلم
             await _loadTeacher();
+            print('DEBUG: _switchLogin - Returning teacher');
             return Logging.teacher; // Teacher users
           } catch (e) {
+            print('DEBUG: _switchLogin - Teacher load error: $e');
             return Logging.notUser;
           }
         case 0:
+          print('DEBUG: _switchLogin - Returning notUser (group=0)');
           // مستخدم ليس له صلاحية
           return Logging.notUser;
         default:
+          print('DEBUG: _switchLogin - Returning notUser (default case)');
           return Logging.notUser;
       }
     }
     
+    print('DEBUG: _switchLogin - User is null, returning notUser');
     return Logging.notUser;
   }
 
