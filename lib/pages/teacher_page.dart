@@ -30,10 +30,14 @@ class TeacherPage extends StatelessWidget {
                           padding: const EdgeInsets.all(16.0),
                           child: Row(
                             children: [
-                              const CircleAvatar(
-                                radius: 35,
-                                backgroundImage:
-                                    AssetImage('assets/default_profile.jpg'),
+                              const SizedBox(
+                                width: 70,
+                                height: 70,
+                                child: CircleAvatar(
+                                  radius: 35,
+                                  backgroundImage:
+                                      AssetImage('assets/default_profile.jpg'),
+                                ),
                               ),
                               const SizedBox(width: 10),
                               Text(
@@ -52,10 +56,10 @@ class TeacherPage extends StatelessWidget {
                           padding: EdgeInsets.all(16.0),
                           child: Row(
                             children: [
-                              CircleAvatar(
-                                radius: 60,
-                                backgroundImage:
-                                    AssetImage('assets/default_profile.jpg'),
+                              SizedBox(
+                                width: 70,
+                                height: 70,
+                                child: CircularProgressIndicator(),
                               ),
                               SizedBox(width: 10),
                               Text(
@@ -72,23 +76,24 @@ class TeacherPage extends StatelessWidget {
                       }
                     }),
               ]),
-              FutureBuilder(
-                future: provider.loadTeacher(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    if (snapshot.data == true) {
-                      return provider.selectedIndex == 0
-                          ? const TeacherImportantDatesListWidget()
-                          : provider.selectedIndex == 1
-                              ? const TeacherDetails()
-                              : provider.selectedIndex == 2
-                                  ? const TeacherArchive()
-                                  : const TeacherGradingView();
+              Expanded(
+                child: FutureBuilder(
+                  future: provider.loadTeacher(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      if (snapshot.data == true) {
+                        return provider.selectedIndex == 0
+                            ? const TeacherImportantDatesListWidget()
+                            : provider.selectedIndex == 1
+                                ? const TeacherDetails()
+                                : provider.selectedIndex == 2
+                                    ? const TeacherArchive()
+                                    : const TeacherGradingView();
+                      }
                     }
-                  }
-                  return const Expanded(
-                      child: Center(child: CircularProgressIndicator()));
-                },
+                    return const Center(child: CircularProgressIndicator());
+                  },
+                ),
               ),
             ],
           ),

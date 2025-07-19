@@ -165,50 +165,50 @@ class TeacherDetails extends StatelessWidget {
                             alignment: Alignment.center,
                             children: [
                               FutureBuilder(
-                                future: provider.loadRequirement(),
+                                future: provider.loadRequirementsIfNeeded(),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState ==
                                       ConnectionState.waiting) {
                                     return const Center(
                                         child: CircularProgressIndicator());
-                                  } else if (snapshot.hasError) {
-                                    return const Center(
-                                        child: Text(
-                                            "حدث خطأ أثناء تحميل المتطلبات"));
                                   } else {
-                                    if (provider.requirementList.isNotEmpty) {
-                                      return ListView(
-                                        children: List.generate(
-                                          provider.requirementList.length,
-                                          (index) {
-                                            final item =
-                                                provider.requirementList[index];
-                                            return RequirementWidget(
-                                              title: item.name,
-                                              onDelete: () {
-                                                provider
-                                                    .deleteRequirement(index);
-                                              },
-                                              onEdit: () {
-                                                showEditRequirementDialog(
-                                                  context,
-                                                  (id, requirement) {
-                                                    provider.editRequirement(
-                                                        id, requirement);
+                                    return Consumer<TeacherProvider>(
+                                      builder: (context, provider, child) {
+                                        if (provider.requirementList.isEmpty) {
+                                          return const Center(
+                                              child: Text(
+                                                  "لا توجد متطلبات لهذا المقترح"));
+                                        } else {
+                                          return ListView(
+                                            children: List.generate(
+                                              provider.requirementList.length,
+                                              (index) {
+                                                final item =
+                                                    provider.requirementList[index];
+                                                return RequirementWidget(
+                                                  title: item.name,
+                                                  onDelete: () {
+                                                    provider
+                                                        .deleteRequirement(index);
                                                   },
-                                                  item.id,
+                                                  onEdit: () {
+                                                    showEditRequirementDialog(
+                                                      context,
+                                                      (id, requirement) {
+                                                        provider.editRequirement(
+                                                            id, requirement);
+                                                      },
+                                                      item.id,
+                                                    );
+                                                  },
+                                                  status: item.status,
                                                 );
                                               },
-                                              status: item.status,
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    } else {
-                                      return const Center(
-                                          child: Text(
-                                              "لا توجد متطلبات لهذا المقترح"));
-                                    }
+                                            ),
+                                          );
+                                        }
+                                      },
+                                    );
                                   }
                                 },
                               ),

@@ -70,10 +70,10 @@ class _AdminProjectDeletePageState extends State<AdminProjectDeletePage> {
   @override
   void initState() {
     super.initState();
-    // تحميل المشاريع عند فتح الصفحة - مرة واحدة فقط
+    // Refresh projects when page is accessed
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<AdminProjectProvider>().loadProjects();
+        context.read<AdminProjectProvider>().refreshProjects();
       }
     });
   }
@@ -104,121 +104,144 @@ class _AdminProjectDeletePageState extends State<AdminProjectDeletePage> {
             },
             editingController: provider.searchbarController),
         Expanded(
-            child: provider.filteredProjectList.isNotEmpty
-                ? ListView(
-                    children: List.generate(
-                        provider.filteredProjectList.length, (index) {
-                      final item = provider.filteredProjectList[index];
-                      return InkWell(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return DeleteConfirmationDialog(
-                                onConfirm: () {
-                                  provider.deleteProject(item.id, index, false);
-                                },
-                              );
-                            },
-                          );
-                        },
-                        child: Stack(
-                          alignment: Alignment.centerLeft,
-                          children: [
-                            ProjectWidget(
-                              title: item.title,
-                              image: item.image,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: IconButton(
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (BuildContext context) {
-                                      return DeleteConfirmationDialog(
-                                        onConfirm: () {
-                                          provider.deleteProject(item.id, index, false);
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                                icon: const Icon(Icons.delete),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await provider.refreshProjects();
+              },
+              child: provider.filteredProjectList.isNotEmpty
+                  ? ListView(
+                      children: List.generate(
+                          provider.filteredProjectList.length, (index) {
+                        final item = provider.filteredProjectList[index];
+                        return InkWell(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return DeleteConfirmationDialog(
+                                  onConfirm: () {
+                                    provider.deleteProject(item.id, index, false);
+                                  },
+                                );
+                              },
+                            );
+                          },
+                          child: Stack(
+                            alignment: Alignment.centerLeft,
+                            children: [
+                              ProjectWidget(
+                                title: item.title,
+                                image: item.image,
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  )
-                : provider.projectList.isNotEmpty
-                    ? ListView(
-                        children: List.generate(provider.projectList.length, (index) {
-                          final item = provider.projectList[index];
-                          return InkWell(
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return DeleteConfirmationDialog(
-                                    onConfirm: () {
-                                      provider.deleteProject(item.id, index, false);
-                                    },
-                                  );
-                                },
-                              );
-                            },
-                            child: Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                ProjectWidget(
-                                  title: item.title,
-                                  image: item.image,
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: IconButton(
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return DeleteConfirmationDialog(
+                                          onConfirm: () {
+                                            provider.deleteProject(item.id, index, false);
+                                          },
+                                        );
+                                      },
+                                    );
+                                  },
+                                  icon: const Icon(Icons.delete),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: IconButton(
-                                    onPressed: () {
-                                      showDialog(
-                                        context: context,
-                                        builder: (BuildContext context) {
-                                          return DeleteConfirmationDialog(
-                                            onConfirm: () {
-                                              provider.deleteProject(item.id, index, false);
-                                            },
-                                          );
-                                        },
-                                      );
-                                    },
-                                    icon: const Icon(Icons.delete),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    )
+                  : provider.projectList.isNotEmpty
+                      ? ListView(
+                          children: List.generate(provider.projectList.length, (index) {
+                            final item = provider.projectList[index];
+                            return InkWell(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return DeleteConfirmationDialog(
+                                      onConfirm: () {
+                                        provider.deleteProject(item.id, index, false);
+                                      },
+                                    );
+                                  },
+                                );
+                              },
+                              child: Stack(
+                                alignment: Alignment.centerLeft,
+                                children: [
+                                  ProjectWidget(
+                                    title: item.title,
+                                    image: item.image,
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
-                      )
-                    : const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.folder_open, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'لا يوجد مشاريع',
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
-                            ),
-                          ],
+                                  Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: IconButton(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (BuildContext context) {
+                                            return DeleteConfirmationDialog(
+                                              onConfirm: () {
+                                                provider.deleteProject(item.id, index, false);
+                                              },
+                                            );
+                                          },
+                                        );
+                                      },
+                                      icon: const Icon(Icons.delete),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+                        )
+                      : const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.folder_open, size: 64, color: Colors.grey),
+                              SizedBox(height: 16),
+                              Text(
+                                'لا يوجد مشاريع',
+                                style: TextStyle(fontSize: 18, color: Colors.grey),
+                              ),
+                            ],
+                          ),
                         ),
-                      )),
+            )),
       ],
     );
   }
 }
 
-class AdminProjectAddStudentPage extends StatelessWidget {
+class AdminProjectAddStudentPage extends StatefulWidget {
   const AdminProjectAddStudentPage({super.key});
+
+  @override
+  State<AdminProjectAddStudentPage> createState() => _AdminProjectAddStudentPageState();
+}
+
+class _AdminProjectAddStudentPageState extends State<AdminProjectAddStudentPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh projects and students when page is accessed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final provider = context.read<AdminProjectProvider>();
+        provider.refreshProjects();
+        provider.refreshStudents();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +280,7 @@ class AdminProjectAddStudentPage extends StatelessWidget {
               !provider.isProjectSelected
                   ? Expanded(
                       child: FutureBuilder(
-                          future: provider.loadProjects(),
+                          future: provider.refreshProjects(),
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
                               if (snapshot.data == true) {
@@ -414,15 +437,61 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                             ),
                           // قائمة الطلاب المتاحة
                           Expanded(
-                            child: FutureBuilder(
-                                future: provider.loadStudents(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    if (provider.filterList.isNotEmpty) {
+                            child: RefreshIndicator(
+                              onRefresh: () async {
+                                await provider.refreshStudents();
+                              },
+                              child: FutureBuilder(
+                                  future: provider.refreshStudents(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      if (provider.filterList.isNotEmpty) {
+                                        return ListView(
+                                          children: List.generate(
+                                              provider.filterList.length, (index) {
+                                            final item = provider.filterList[index];
+                                            final isSelected = provider.isStudentSelected(item);
+                                            return InkWell(
+                                              onTap: () {
+                                                if (isSelected) {
+                                                  provider.removeStudentFromSelection(item);
+                                                } else {
+                                                  provider.addStudentToSelection(item);
+                                                }
+                                              },
+                                              child: Stack(
+                                                alignment: Alignment.bottomLeft,
+                                                children: [
+                                                  StudentListItem(
+                                                      imageLink: "",
+                                                      firstName: item.user.firstName,
+                                                      lastName: item.user.lastName,
+                                                      userName: item.user.username),
+                                                  if (isSelected)
+                                                    Padding(
+                                                      padding: const EdgeInsets.all(16.0),
+                                                      child: Container(
+                                                        decoration: const BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          color: Colors.white,
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.check_outlined,
+                                                          color: Colors.greenAccent,
+                                                          size: 38,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                            );
+                                          }),
+                                        );
+                                      }
                                       return ListView(
-                                        children: List.generate(
-                                            provider.filterList.length, (index) {
-                                          final item = provider.filterList[index];
+                                        children: List.generate(snapshot.data!.length,
+                                            (index) {
+                                          final item = snapshot.data![index];
                                           final isSelected = provider.isStudentSelected(item);
                                           return InkWell(
                                             onTap: () {
@@ -461,57 +530,16 @@ class AdminProjectAddStudentPage extends StatelessWidget {
                                         }),
                                       );
                                     }
-                                    return ListView(
-                                      children: List.generate(snapshot.data!.length,
-                                          (index) {
-                                        final item = snapshot.data![index];
-                                        final isSelected = provider.isStudentSelected(item);
-                                        return InkWell(
-                                          onTap: () {
-                                            if (isSelected) {
-                                              provider.removeStudentFromSelection(item);
-                                            } else {
-                                              provider.addStudentToSelection(item);
-                                            }
-                                          },
-                                          child: Stack(
-                                            alignment: Alignment.bottomLeft,
-                                            children: [
-                                              StudentListItem(
-                                                  imageLink: "",
-                                                  firstName: item.user.firstName,
-                                                  lastName: item.user.lastName,
-                                                  userName: item.user.username),
-                                              if (isSelected)
-                                                Padding(
-                                                  padding: const EdgeInsets.all(16.0),
-                                                  child: Container(
-                                                    decoration: const BoxDecoration(
-                                                      shape: BoxShape.circle,
-                                                      color: Colors.white,
-                                                    ),
-                                                    child: const Icon(
-                                                      Icons.check_outlined,
-                                                      color: Colors.greenAccent,
-                                                      size: 38,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        );
-                                      }),
-                                    );
-                                  }
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.done) {
-                                    if (snapshot.hasError) {
-                                      return Text("$snapshot");
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.done) {
+                                      if (snapshot.hasError) {
+                                        return Text("$snapshot");
+                                      }
                                     }
-                                  }
-                                  return const Center(
-                                      child: CircularProgressIndicator());
-                                }),
+                                    return const Center(
+                                        child: CircularProgressIndicator());
+                                  }),
+                            ),
                           ),
                         ],
                       ),
@@ -619,8 +647,26 @@ class AdminProjectAddStudentPage extends StatelessWidget {
   }
 }
 
-class AdminProjectSetTeacherPage extends StatelessWidget {
+class AdminProjectSetTeacherPage extends StatefulWidget {
   const AdminProjectSetTeacherPage({super.key});
+
+  @override
+  State<AdminProjectSetTeacherPage> createState() => _AdminProjectSetTeacherPageState();
+}
+
+class _AdminProjectSetTeacherPageState extends State<AdminProjectSetTeacherPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh projects and teachers when page is accessed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final provider = context.read<AdminProjectProvider>();
+        provider.refreshProjects();
+        provider.refreshTeachers();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -659,7 +705,7 @@ class AdminProjectSetTeacherPage extends StatelessWidget {
               !provider.isProjectSelected
                   ? Expanded(
                       child: FutureBuilder(
-                          future: provider.loadProjects(),
+                          future: provider.refreshProjects(),
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
                               if (snapshot.data == true) {
@@ -767,17 +813,64 @@ class AdminProjectSetTeacherPage extends StatelessWidget {
                           }),
                     )
                   : Expanded(
-                      child: FutureBuilder(
-                          future: provider.loadTeachers(),
-                          builder: (context, snapshot) {
-                            if (snapshot.hasData) {
-                              if (provider.filteredTeacherList.isNotEmpty) {
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          await provider.refreshTeachers();
+                        },
+                        child: FutureBuilder(
+                            future: provider.refreshTeachers(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                if (provider.filteredTeacherList.isNotEmpty) {
+                                  return ListView(
+                                    children: List.generate(
+                                        provider.filteredTeacherList.length,
+                                        (index) {
+                                      final item =
+                                          provider.filteredTeacherList[index];
+                                      if (provider.teacherToSet?.id == item.id) {
+                                        return Stack(
+                                          alignment: Alignment.bottomLeft,
+                                          children: [
+                                            StudentListItem(
+                                                imageLink: "",
+                                                firstName: item.user.firstName,
+                                                lastName: item.user.lastName,
+                                                userName: item.user.username),
+                                            Padding(
+                                              padding: const EdgeInsets.all(16.0),
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.white,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check_outlined,
+                                                  color: Colors.greenAccent,
+                                                  size: 38,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }
+                                      return InkWell(
+                                        onTap: () {
+                                          provider.setCurrentTeacher(item);
+                                        },
+                                        child: StudentListItem(
+                                            imageLink: "",
+                                            firstName: item.user.firstName,
+                                            lastName: item.user.lastName,
+                                            userName: item.user.username),
+                                      );
+                                    }),
+                                  );
+                                }
                                 return ListView(
-                                  children: List.generate(
-                                      provider.filteredTeacherList.length,
+                                  children: List.generate(snapshot.data!.length,
                                       (index) {
-                                    final item =
-                                        provider.filteredTeacherList[index];
+                                    final item = snapshot.data![index];
                                     if (provider.teacherToSet?.id == item.id) {
                                       return Stack(
                                         alignment: Alignment.bottomLeft,
@@ -817,58 +910,16 @@ class AdminProjectSetTeacherPage extends StatelessWidget {
                                   }),
                                 );
                               }
-                              return ListView(
-                                children: List.generate(snapshot.data!.length,
-                                    (index) {
-                                  final item = snapshot.data![index];
-                                  if (provider.teacherToSet?.id == item.id) {
-                                    return Stack(
-                                      alignment: Alignment.bottomLeft,
-                                      children: [
-                                        StudentListItem(
-                                            imageLink: "",
-                                            firstName: item.user.firstName,
-                                            lastName: item.user.lastName,
-                                            userName: item.user.username),
-                                        Padding(
-                                          padding: const EdgeInsets.all(16.0),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: Colors.white,
-                                            ),
-                                            child: const Icon(
-                                              Icons.check_outlined,
-                                              color: Colors.greenAccent,
-                                              size: 38,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  }
-                                  return InkWell(
-                                    onTap: () {
-                                      provider.setCurrentTeacher(item);
-                                    },
-                                    child: StudentListItem(
-                                        imageLink: "",
-                                        firstName: item.user.firstName,
-                                        lastName: item.user.lastName,
-                                        userName: item.user.username),
-                                  );
-                                }),
-                              );
-                            }
-                            if (snapshot.connectionState ==
-                                ConnectionState.done) {
-                              if (snapshot.hasError) {
-                                return Text("$snapshot");
+                              if (snapshot.connectionState ==
+                                  ConnectionState.done) {
+                                if (snapshot.hasError) {
+                                  return Text("$snapshot");
+                                }
                               }
-                            }
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }),
+                              return const Center(
+                                  child: CircularProgressIndicator());
+                            }),
+                      ),
                     ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -978,8 +1029,24 @@ class AdminProjectSetTeacherPage extends StatelessWidget {
   }
 }
 
-class AdminProjectEditPage extends StatelessWidget {
+class AdminProjectEditPage extends StatefulWidget {
   const AdminProjectEditPage({super.key});
+
+  @override
+  State<AdminProjectEditPage> createState() => _AdminProjectEditPageState();
+}
+
+class _AdminProjectEditPageState extends State<AdminProjectEditPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Refresh projects when page is accessed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AdminEditProjectProvider>().refreshProjects();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -990,7 +1057,7 @@ class AdminProjectEditPage extends StatelessWidget {
         return provider.project == null
             ? Expanded(
                 child: FutureBuilder(
-                    future: provider.loadProjects(),
+                    future: provider.refreshProjects(),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
                         if (snapshot.data == true) {
@@ -1010,83 +1077,89 @@ class AdminProjectEditPage extends StatelessWidget {
                                   editingController:
                                       provider.searchbarController),
                               Expanded(
-                                  child: provider.filterList.isNotEmpty
-                                      ? ListView(
-                                          children: List.generate(
-                                              provider.filterList.length,
-                                              (index) {
-                                            final item =
-                                                provider.filterList[index];
-                                            return InkWell(
-                                              onTap: () {
-                                                provider.setProject(item);
-                                              },
-                                              child: Stack(
-                                                alignment: Alignment.centerLeft,
-                                                children: [
-                                                  ProjectWidget(
-                                                    title: item.title,
-                                                    image: item.image,
-                                                  ),
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            16.0),
-                                                    child: IconButton(
-                                                      onPressed: () {
-                                                        provider
-                                                            .setProject(item);
-                                                      },
-                                                      icon: const Icon(
-                                                          Icons.edit),
+                                  child: RefreshIndicator(
+                                    onRefresh: () async {
+                                      await provider.refreshProjects();
+                                    },
+                                    child: provider.filterList.isNotEmpty
+                                        ? ListView(
+                                            children: List.generate(
+                                                provider.filterList.length,
+                                                (index) {
+                                              final item =
+                                                  provider.filterList[index];
+                                              return InkWell(
+                                                onTap: () {
+                                                  provider.setProject(item);
+                                                },
+                                                child: Stack(
+                                                  alignment: Alignment.centerLeft,
+                                                  children: [
+                                                    ProjectWidget(
+                                                      title: item.title,
+                                                      image: item.image,
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          }),
-                                        )
-                                      : provider.projectList.isNotEmpty
-                                          ? ListView(
-                                              children: List.generate(
-                                                  provider.projectList.length,
-                                                  (index) {
-                                                final item =
-                                                    provider.projectList[index];
-                                                return InkWell(
-                                                  onTap: () {
-                                                    // provider.setCurrentProject(item);
-                                                    provider.setProject(item);
-                                                  },
-                                                  child: Stack(
-                                                    alignment:
-                                                        Alignment.centerLeft,
-                                                    children: [
-                                                      ProjectWidget(
-                                                        title: item.title,
-                                                        image: item.image,
+                                                    Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              16.0),
+                                                      child: IconButton(
+                                                        onPressed: () {
+                                                          provider
+                                                              .setProject(item);
+                                                        },
+                                                        icon: const Icon(
+                                                            Icons.edit),
                                                       ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(16.0),
-                                                        child: IconButton(
-                                                          onPressed: () {
-                                                            provider.setProject(
-                                                                item);
-                                                          },
-                                                          icon: const Icon(
-                                                              Icons.edit),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }),
+                                          )
+                                        : provider.projectList.isNotEmpty
+                                            ? ListView(
+                                                children: List.generate(
+                                                    provider.projectList.length,
+                                                    (index) {
+                                                  final item =
+                                                      provider.projectList[index];
+                                                  return InkWell(
+                                                    onTap: () {
+                                                      // provider.setCurrentProject(item);
+                                                      provider.setProject(item);
+                                                    },
+                                                    child: Stack(
+                                                      alignment:
+                                                          Alignment.centerLeft,
+                                                      children: [
+                                                        ProjectWidget(
+                                                          title: item.title,
+                                                          image: item.image,
                                                         ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              }),
-                                            )
-                                          : const Center(
-                                              child: Text(
-                                                  "لا توجد مشاريع لعرضها"))),
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(16.0),
+                                                          child: IconButton(
+                                                            onPressed: () {
+                                                              provider.setProject(
+                                                                  item);
+                                                            },
+                                                            icon: const Icon(
+                                                                Icons.edit),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }),
+                                              )
+                                            : const Center(
+                                                child: Text(
+                                                    "لا توجد مشاريع لعرضها")),
+                                  ),
+                                ),
                             ],
                           );
                         } else {

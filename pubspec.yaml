@@ -69,6 +69,14 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
 
+# Dependency overrides to resolve Firebase compatibility issues
+dependency_overrides:
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.10
+  firebase_messaging_web: ^3.5.18
+  firebase_core_web: ^2.24.0
+  js: ^0.6.7
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

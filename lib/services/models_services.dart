@@ -279,10 +279,19 @@ Future<Project> patchProject(
     required double? progression,
     required String? deliveryDate,
     required int? mainSuggestion,
-    String? firstGrading,
-    String? secondGrading,
-    String? teacherGrading,
-    double? finalScore}) async {
+    double? firstGrading,
+    double? secondGrading,
+    double? supervisorGrade,
+    double? departmentHeadGrade,
+    double? coordinatorGrade,
+    double? finalScore,
+    String? pdfLink,
+    String? pdfExaminer1,
+    String? pdfExaminer2,
+    String? pdfSupervisor,
+    String? pdfHead,
+    String? pdfCoordinator,
+    String? gradedStatus}) async {
   Map<String, dynamic> request = <String, dynamic>{};
   if (teacher != 0) {
     request["teacher"] = teacher;
@@ -308,11 +317,38 @@ Future<Project> patchProject(
   if (secondGrading != null) {
     request["second_grading"] = secondGrading;
   }
-  if (teacherGrading != null) {
-    request["teacher_grading"] = teacherGrading;
+  if (supervisorGrade != null) {
+    request["supervisor_grade"] = supervisorGrade;
+  }
+  if (departmentHeadGrade != null) {
+    request["department_head_grade"] = departmentHeadGrade;
+  }
+  if (coordinatorGrade != null) {
+    request["coordinator_grade"] = coordinatorGrade;
   }
   if (finalScore != null) {
     request["final_score"] = finalScore;
+  }
+  if (pdfLink != null && pdfLink.isNotEmpty) {
+    request["pdf_link"] = pdfLink;
+  }
+  if (pdfExaminer1 != null && pdfExaminer1.isNotEmpty) {
+    request["pdf_examiner1"] = pdfExaminer1;
+  }
+  if (pdfExaminer2 != null && pdfExaminer2.isNotEmpty) {
+    request["pdf_examiner2"] = pdfExaminer2;
+  }
+  if (pdfSupervisor != null && pdfSupervisor.isNotEmpty) {
+    request["pdf_supervisor"] = pdfSupervisor;
+  }
+  if (pdfHead != null && pdfHead.isNotEmpty) {
+    request["pdf_head"] = pdfHead;
+  }
+  if (pdfCoordinator != null && pdfCoordinator.isNotEmpty) {
+    request["pdf_coordinator"] = pdfCoordinator;
+  }
+  if (gradedStatus != null && gradedStatus.isNotEmpty) {
+    request["graded_status"] = gradedStatus;
   }
   http.Response response = await services.patch("$PROJECT$id/", request);
   final body = responseDecoder(response);
@@ -437,7 +473,7 @@ Future<Requirement> patchRequirement(
 }
 
 Future<User?> registerUser(Map<String, dynamic> user) async {
-  final url = Uri.parse("${InternetService.baseUrl}$REGISTER");
+  final url = Uri.parse("https://easy0123.pythonanywhere.com$REGISTER");
   print("Attempting registration to: $url");
   print("User data: ${jsonEncode(user)}");
   
@@ -615,7 +651,7 @@ Future<StudentDetailsList> getPendingStudents() async {
 Future<bool> checkStudentApprovalStatus(String username) async {
   try {
     final userResponse = await http.get(
-      Uri.parse("${InternetService.baseUrl}$USER?username=$username"),
+      Uri.parse("https://easy0123.pythonanywhere.com$USER?username=$username"),
       headers: {
         "Content-Type": "application/json",
       },
@@ -627,7 +663,7 @@ Future<bool> checkStudentApprovalStatus(String username) async {
         final userId = userData[0]['id'];
         
         final studentResponse = await http.get(
-          Uri.parse("${InternetService.baseUrl}$STUDENT?user=$userId"),
+          Uri.parse("https://easy0123.pythonanywhere.com$STUDENT?user=$userId"),
           headers: {
             "Content-Type": "application/json",
           },
@@ -648,18 +684,4 @@ Future<bool> checkStudentApprovalStatus(String username) async {
   } catch (e) {
     return false;
   }
-}
-
-// دالة جديدة لحفظ الدرجة النهائية المحسوبة
-Future<Project> saveFinalScore(int projectId, double finalScore) async {
-  Map<String, dynamic> request = <String, dynamic>{
-    "final_score": finalScore,
-  };
-  
-  http.Response response = await services.patch("$PROJECT$projectId/", request);
-  final body = responseDecoder(response);
-  if (response.statusCode != 200) {
-    throw Exception('${response.statusCode}:${response.body}');
-  }
-  return Project.fromJson(jsonDecode(body));
 }

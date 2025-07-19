@@ -23,6 +23,7 @@ class TeacherProvider extends ChangeNotifier {
   List<StudentDetail> _studentList = [];
   List<Suggestion> _suggestionList = [];
   List<Requirement> _requirementList = [];
+  bool _requirementsLoaded = false;
   String _imageBase64 = "";
   String _suggestionUrl = "";
   String _suggestionContent = "";
@@ -117,20 +118,29 @@ class TeacherProvider extends ChangeNotifier {
 
   Future<List<StudentDetail>> loadFilteredStudentForProject(
       int projectId) async {
-    if (_studentList.isEmpty) {
-      final InternetService services = InternetService();
-      if (!services.isAuthorized()) {
-        return [];
-      }
-      
-      try {
-        final data = await getStudentDetailsList();
-        _studentList = data.studentDetails;
-      } catch (e) {
-        return [];
-      }
+    // Always reload the student list for up-to-date data
+    final InternetService services = InternetService();
+    if (!services.isAuthorized()) {
+      return [];
     }
-    return _studentList.where((e) => e.project == projectId).toList();
+    try {
+      final data = await getStudentDetailsList();
+      _studentList = data.studentDetails;
+      // Debug print: all loaded students
+      print('Loaded students:');
+      for (var s in _studentList) {
+        print('Student id: ${s.id}, project: ${s.project}, name: ${s.user.firstName}');
+      }
+    } catch (e) {
+      return [];
+    }
+    final filtered = _studentList.where((e) => e.project == projectId).toList();
+    // Debug print: filtered students
+    print('Filtered students for project $projectId:');
+    for (var s in filtered) {
+      print('Student id: ${s.id}, project: ${s.project}, name: ${s.user.firstName}');
+    }
+    return filtered;
   }
 
   Future<List<ImportantDate>> _loadImportantDates() async {
@@ -138,7 +148,6 @@ class TeacherProvider extends ChangeNotifier {
       final ImportantDateList data = await getImportantDatesList();
       return data.importantDate;
     } catch (e) {}
-    notifyListeners();
     return [];
   }
 
@@ -148,6 +157,7 @@ class TeacherProvider extends ChangeNotifier {
     if (_currentProject != null) {
       _selectedSuggestion = _currentProject!.mainSuggestion;
     }
+    _requirementsLoaded = false;
     notifyListeners();
   }
 
@@ -161,17 +171,34 @@ class TeacherProvider extends ChangeNotifier {
   }
 
   Future<List<Requirement>> loadRequirement() async {
-    try {
-      final requirements = await getRequirementList();
-      _requirementList = requirements.requirement;
-      if (_selectedSuggestion != null) {
-        _requirementList = _requirementList
-            .where((element) => element.suggestion == _selectedSuggestion!.id)
-            .toList();
-      }
-      return _requirementList;
-    } catch (e) {}
-    return [];
+    if (!_requirementsLoaded) {
+      try {
+        final requirements = await getRequirementList();
+        _requirementList = requirements.requirement;
+        if (_selectedSuggestion != null) {
+          _requirementList = _requirementList
+              .where((element) => element.suggestion == _selectedSuggestion!.id)
+              .toList();
+        }
+        _requirementsLoaded = true;
+        notifyListeners();
+        return _requirementList;
+      } catch (e) {}
+    }
+    return _requirementList;
+  }
+
+  Future<void> loadRequirementsIfNeeded() async {
+    if (!_requirementsLoaded && _selectedSuggestion != null) {
+      await loadRequirement();
+    }
+  }
+
+  Future<void> refreshRequirements() async {
+    _requirementsLoaded = false;
+    if (_selectedSuggestion != null) {
+      await loadRequirement();
+    }
   }
 
   void createRequirement(String content) async {
@@ -233,6 +260,24 @@ class TeacherProvider extends ChangeNotifier {
 
   Future<void> editRequirement(int id, Requirement requirement) async {
     await patchRequirement(id, requirement.name, requirement.status, null);
-    _loadSuggestions();
+    await refreshRequirements();
+  }
+
+  // Add this method to refresh the current project details
+  Future<void> refreshCurrentProject() async {
+    if (_currentProject != null) {
+      try {
+        // Assuming getProjectDetailsList() returns all projects, so we find the one with the same id
+        final allProjects = await getProjectDetailsList();
+        final updated = allProjects.datum.firstWhere(
+          (p) => p.id == _currentProject!.id,
+          orElse: () => _currentProject!,
+        );
+        _currentProject = updated;
+        notifyListeners();
+      } catch (e) {
+        // Handle error if needed
+      }
+    }
   }
 }

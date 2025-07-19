@@ -94,6 +94,20 @@ class AdminEditProjectProvider extends ChangeNotifier {
     }
   }
 
+  // إضافة دالة لتحديث المشاريع
+  Future<bool> refreshProjects() async {
+    try {
+      final data = await getProjectDetailsList();
+      _projectList = data.datum;
+      _filteredProjectList =
+          List.from(_projectList); // حفظ نسخة من المشاريع لاستخدامها في الفلترة
+      notifyListeners();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   void filterProjectList() {
     if (searchbarController.text.isEmpty) {
       // إذا كانت خانة البحث فارغة، نعرض كل المشاريع

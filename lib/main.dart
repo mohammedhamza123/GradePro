@@ -42,10 +42,13 @@ Future<void> main() async {
 
   // Initialize Firebase with error handling
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     NotificationService.instance.initialize(navigatorKey);
   } catch (e) {
     // If Firebase fails to initialize, continue without it
+    print('Firebase initialization error: $e');
   }
 
   runApp(const MyApp());

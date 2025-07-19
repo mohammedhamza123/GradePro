@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:gradpro/models/project_details_list.dart';
+import 'package:gradpro/models/project_list.dart'; // Add this import
 import 'package:pdf/pdf.dart' as pdf;
 import 'package:pdf/widgets.dart' as pw;
 import '../pages/widgets/widget_pdf.dart';
@@ -29,12 +30,13 @@ class EvaluationItem {
   final String section;
   final String detail;
   final int maxScore;
-  EvaluationItem({required this.section, required this.detail, required this.maxScore});
+  EvaluationItem(
+      {required this.section, required this.detail, required this.maxScore});
 }
 
 class PdfProvider extends ChangeNotifier {
   // final PdfStorageService _storageService = PdfStorageService();
-  // 
+  //
   // List<String> header = [
   //   'المعيار',
   //   'الدرجة العظمي',
@@ -67,7 +69,7 @@ class PdfProvider extends ChangeNotifier {
   //   '5',
   //   '2'
   // ];
-  // 
+  //
   List<String> editableColumn3 = List.generate(11, (index) => '');
   List<String> editableColumn4 = List.generate(11, (index) => '');
 
@@ -75,65 +77,164 @@ class PdfProvider extends ChangeNotifier {
 
   // بنود التقييم للمشرف (الحالية)
   List<EvaluationItem> evaluationItems = [
-    EvaluationItem(section: 'Teamwork', detail: 'Meetings and Sessions', maxScore: 10),
-    EvaluationItem(section: 'Teamwork', detail: 'Attendance and Absence', maxScore: 10),
-    EvaluationItem(section: 'Teamwork', detail: 'Commitment to Deadlines', maxScore: 10),
-    EvaluationItem(section: 'Teamwork', detail: 'Contribution and Interaction', maxScore: 20),
-    EvaluationItem(section: 'Relations & Communication', detail: 'Quality of Relations', maxScore: 10),
-    EvaluationItem(section: 'Relations & Communication', detail: 'Enthusiasm for Work', maxScore: 10),
-    EvaluationItem(section: 'Relations & Communication', detail: 'Communication', maxScore: 10),
-    EvaluationItem(section: 'Relations & Communication', detail: 'Leadership', maxScore: 10),
-    EvaluationItem(section: 'Project Analysis', detail: 'Problem to Solve', maxScore: 10),
-    EvaluationItem(section: 'Project Analysis', detail: 'Literature Review and Case Study', maxScore: 10),
-    EvaluationItem(section: 'Project Analysis', detail: 'Project Scope and Boundaries', maxScore: 10),
-    EvaluationItem(section: 'Project Analysis', detail: 'Objectives and Benefits', maxScore: 10),
-    EvaluationItem(section: 'Project Analysis', detail: 'Methodology', maxScore: 20),
-    EvaluationItem(section: 'System Design', detail: 'Architecture Design', maxScore: 20),
-    EvaluationItem(section: 'System Design', detail: 'Interfaces Design', maxScore: 20),
-    EvaluationItem(section: 'System Design', detail: 'Database Design (Persistence)', maxScore: 20),
-    EvaluationItem(section: 'System Design', detail: 'Algorithms Design', maxScore: 20),
-    EvaluationItem(section: 'System Design', detail: 'Safety & Security', maxScore: 20),
-    EvaluationItem(section: 'System Development', detail: 'Quality Plan', maxScore: 20),
-    EvaluationItem(section: 'System Development', detail: 'Coding and Programming', maxScore: 20),
-    EvaluationItem(section: 'System Development', detail: 'Testing and Test Cases', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Performance', detail: 'Presentation', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Performance', detail: 'Participation', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Performance', detail: 'Performance', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Performance', detail: 'Good Use of Tools', maxScore: 20),
-    EvaluationItem(section: 'Final Appearance', detail: 'Appearance', maxScore: 20),
-    EvaluationItem(section: 'Final Appearance', detail: 'Perfection', maxScore: 20),
-    EvaluationItem(section: 'Final Appearance', detail: 'Quality', maxScore: 20),
-    EvaluationItem(section: 'Final Appearance', detail: 'Good Use of Tools', maxScore: 20),
-    EvaluationItem(section: 'Final Appearance', detail: 'Arabic Language', maxScore: 20),
+    EvaluationItem(
+        section: 'Teamwork', detail: 'Meetings and Sessions', maxScore: 10),
+    EvaluationItem(
+        section: 'Teamwork', detail: 'Attendance and Absence', maxScore: 10),
+    EvaluationItem(
+        section: 'Teamwork', detail: 'Commitment to Deadlines', maxScore: 10),
+    EvaluationItem(
+        section: 'Teamwork',
+        detail: 'Contribution and Interaction',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Relations & Communication',
+        detail: 'Quality of Relations',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Relations & Communication',
+        detail: 'Enthusiasm for Work',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Relations & Communication',
+        detail: 'Communication',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Relations & Communication',
+        detail: 'Leadership',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Project Analysis', detail: 'Problem to Solve', maxScore: 10),
+    EvaluationItem(
+        section: 'Project Analysis',
+        detail: 'Literature Review and Case Study',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Project Analysis',
+        detail: 'Project Scope and Boundaries',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Project Analysis',
+        detail: 'Objectives and Benefits',
+        maxScore: 10),
+    EvaluationItem(
+        section: 'Project Analysis', detail: 'Methodology', maxScore: 20),
+    EvaluationItem(
+        section: 'System Design', detail: 'Architecture Design', maxScore: 20),
+    EvaluationItem(
+        section: 'System Design', detail: 'Interfaces Design', maxScore: 20),
+    EvaluationItem(
+        section: 'System Design',
+        detail: 'Database Design (Persistence)',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'System Design', detail: 'Algorithms Design', maxScore: 20),
+    EvaluationItem(
+        section: 'System Design', detail: 'Safety & Security', maxScore: 20),
+    EvaluationItem(
+        section: 'System Development', detail: 'Quality Plan', maxScore: 20),
+    EvaluationItem(
+        section: 'System Development',
+        detail: 'Coding and Programming',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'System Development',
+        detail: 'Testing and Test Cases',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Performance',
+        detail: 'Presentation',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Performance',
+        detail: 'Participation',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Performance',
+        detail: 'Performance',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Performance',
+        detail: 'Good Use of Tools',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Final Appearance', detail: 'Appearance', maxScore: 20),
+    EvaluationItem(
+        section: 'Final Appearance', detail: 'Perfection', maxScore: 20),
+    EvaluationItem(
+        section: 'Final Appearance', detail: 'Quality', maxScore: 20),
+    EvaluationItem(
+        section: 'Final Appearance', detail: 'Good Use of Tools', maxScore: 20),
+    EvaluationItem(
+        section: 'Final Appearance', detail: 'Arabic Language', maxScore: 20),
   ];
 
   // بنود التقييم للممتحن (Examiner) بالعربي كما في الصورة
   List<EvaluationItem> examinerEvaluationItems = [
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'Commitment to Deadlines', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'Contribution and Interaction', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'Presentation Skills', maxScore: 30),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'Clarity and Logical Sequence', maxScore: 30),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'Use of Tools', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'Answering Questions', maxScore: 30),
-    EvaluationItem(section: 'Project Understanding', detail: 'Problem to Solve', maxScore: 20),
-    EvaluationItem(section: 'Project Understanding', detail: 'Literature Review and Case Study', maxScore: 20),
-    EvaluationItem(section: 'Project Understanding', detail: 'Project Scope and Boundaries', maxScore: 20),
-    EvaluationItem(section: 'Project Understanding', detail: 'Objectives and Benefits', maxScore: 20),
-    EvaluationItem(section: 'Project Understanding', detail: 'Methodology', maxScore: 20),
-    EvaluationItem(section: 'Project Design', detail: 'Architecture Design', maxScore: 30),
-    EvaluationItem(section: 'Project Design', detail: 'Interfaces Design', maxScore: 30),
-    EvaluationItem(section: 'Project Design', detail: 'Database Design (Persistence)', maxScore: 30),
-    EvaluationItem(section: 'Project Design', detail: 'Algorithms Design', maxScore: 30),
-    EvaluationItem(section: 'Project Design', detail: 'Safety & Security', maxScore: 30),
+    EvaluationItem(
+        section: 'Presentation & Seminar',
+        detail: 'Commitment to Deadlines',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Seminar',
+        detail: 'Contribution and Interaction',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Seminar',
+        detail: 'Presentation Skills',
+        maxScore: 30),
+    EvaluationItem(
+        section: 'Presentation & Seminar',
+        detail: 'Clarity and Logical Sequence',
+        maxScore: 30),
+    EvaluationItem(
+        section: 'Presentation & Seminar',
+        detail: 'Use of Tools',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Presentation & Seminar',
+        detail: 'Answering Questions',
+        maxScore: 30),
+    EvaluationItem(
+        section: 'Project Understanding',
+        detail: 'Problem to Solve',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Project Understanding',
+        detail: 'Literature Review and Case Study',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Project Understanding',
+        detail: 'Project Scope and Boundaries',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Project Understanding',
+        detail: 'Objectives and Benefits',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Project Understanding', detail: 'Methodology', maxScore: 20),
+    EvaluationItem(
+        section: 'Project Design', detail: 'Architecture Design', maxScore: 30),
+    EvaluationItem(
+        section: 'Project Design', detail: 'Interfaces Design', maxScore: 30),
+    EvaluationItem(
+        section: 'Project Design',
+        detail: 'Database Design (Persistence)',
+        maxScore: 30),
+    EvaluationItem(
+        section: 'Project Design', detail: 'Algorithms Design', maxScore: 30),
+    EvaluationItem(
+        section: 'Project Design', detail: 'Safety & Security', maxScore: 30),
     EvaluationItem(section: 'Report', detail: 'Appearance', maxScore: 20),
     EvaluationItem(section: 'Report', detail: 'Perfection', maxScore: 20),
     EvaluationItem(section: 'Report', detail: 'Quality', maxScore: 20),
-    EvaluationItem(section: 'Report', detail: 'Good Use of Tools', maxScore: 20),
+    EvaluationItem(
+        section: 'Report', detail: 'Good Use of Tools', maxScore: 20),
     EvaluationItem(section: 'Report', detail: 'Arabic Language', maxScore: 20),
   ];
 
   // Getter للوصول إلى البنود حسب نوع المستخدم
-  List<EvaluationItem> get currentEvaluationItems => 
+  List<EvaluationItem> get currentEvaluationItems =>
       isExaminer ? examinerEvaluationItems : evaluationItems;
 
   // متغيرات الدرجات والملاحظات لكل بند
@@ -148,8 +249,9 @@ class PdfProvider extends ChangeNotifier {
 
   // دالة لتحديث حجم المصفوفات حسب نوع المستخدم
   void updateArraySizes() {
-    final targetSize = isExaminer ? examinerEvaluationItems.length : evaluationItems.length;
-    
+    final targetSize =
+        isExaminer ? examinerEvaluationItems.length : evaluationItems.length;
+
     // توسيع المصفوفات إذا كانت أصغر من المطلوب
     if (scores.length < targetSize) {
       scores.addAll(List.generate(targetSize - scores.length, (index) => ''));
@@ -157,7 +259,7 @@ class PdfProvider extends ChangeNotifier {
     if (notes.length < targetSize) {
       notes.addAll(List.generate(targetSize - notes.length, (index) => ''));
     }
-    
+
     // تقليص المصفوفات إذا كانت أكبر من المطلوب
     if (scores.length > targetSize) {
       scores = scores.sublist(0, targetSize);
@@ -165,7 +267,7 @@ class PdfProvider extends ChangeNotifier {
     if (notes.length > targetSize) {
       notes = notes.sublist(0, targetSize);
     }
-    
+
     notifyListeners();
   }
 
@@ -217,7 +319,7 @@ class PdfProvider extends ChangeNotifier {
 
   Future<Uint8List> generatePdf({
     required String supervisorUsername,
-    required String studentName,
+    required List<String> studentNames,
     required String projectTitle,
     required String evaluationType,
   }) async {
@@ -246,7 +348,7 @@ class PdfProvider extends ChangeNotifier {
               pw.Text('Evaluation Form', style: pw.TextStyle(fontSize: 22)),
               pw.SizedBox(height: 16),
               pw.Text('Project Title: $projectTitle'),
-              pw.Text('Student Name: $studentName'),
+              pw.Text('Student Names: ${studentNames.join(', ')}'),
               pw.Text('Supervisor: $supervisorUsername'),
               pw.Text('Evaluation Type: $evaluationType'),
               pw.SizedBox(height: 16),
@@ -257,14 +359,27 @@ class PdfProvider extends ChangeNotifier {
                       children: [
                         pw.TableRow(
                           children: [
-                            pw.Text('College Score', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text(examinerCollegeScore.isNotEmpty ? examinerCollegeScore : '-', style: pw.TextStyle(fontSize: 16)),
+                            pw.Text('College Score',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.Text(
+                                examinerCollegeScore.isNotEmpty
+                                    ? examinerCollegeScore
+                                    : '-',
+                                style: pw.TextStyle(fontSize: 16)),
                           ],
                         ),
                         pw.TableRow(
                           children: [
-                            pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text(examinerCollegeScore.isNotEmpty ? '${examinerCollegeScore} / ${convertTo25(int.tryParse(examinerCollegeScore) ?? 0).toStringAsFixed(2)}' : '-', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text('Total',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.Text(
+                                examinerCollegeScore.isNotEmpty
+                                    ? '${examinerCollegeScore} / ${convertTo25(int.tryParse(examinerCollegeScore) ?? 0).toStringAsFixed(2)}'
+                                    : '-',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -274,20 +389,33 @@ class PdfProvider extends ChangeNotifier {
                       children: [
                         pw.TableRow(
                           children: [
-                            pw.Text('Project Coordinator Score', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text(coordinatorScore.isNotEmpty ? coordinatorScore : '-', style: pw.TextStyle(fontSize: 16)),
+                            pw.Text('Project Coordinator Score',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.Text(
+                                coordinatorScore.isNotEmpty
+                                    ? coordinatorScore
+                                    : '-',
+                                style: pw.TextStyle(fontSize: 16)),
                           ],
                         ),
                         pw.TableRow(
                           children: [
-                            pw.Text('Department Head Score', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text(headScore.isNotEmpty ? headScore : '-', style: pw.TextStyle(fontSize: 16)),
+                            pw.Text('Department Head Score',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.Text(headScore.isNotEmpty ? headScore : '-',
+                                style: pw.TextStyle(fontSize: 16)),
                           ],
                         ),
                         pw.TableRow(
                           children: [
-                            pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                            pw.Text(_getCoordinatorHeadTotal(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                            pw.Text('Total',
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
+                            pw.Text(_getCoordinatorHeadTotal(),
+                                style: pw.TextStyle(
+                                    fontWeight: pw.FontWeight.bold)),
                           ],
                         ),
                       ],
@@ -299,10 +427,14 @@ class PdfProvider extends ChangeNotifier {
                 children: [
                   pw.TableRow(
                     children: [
-                      pw.Text('Item', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Max Score', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Score', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Notes', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Item',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Max Score',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Score',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Notes',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ],
                   ),
                   for (var i = 0; i < items.length; i++)
@@ -310,23 +442,30 @@ class PdfProvider extends ChangeNotifier {
                       children: [
                         pw.Text(items[i].detail),
                         pw.Text(items[i].maxScore.toString()),
-                        pw.Text((scores.length > i && scores[i].isNotEmpty) ? scores[i] : '-'),
-                        pw.Text((notes.length > i && notes[i].isNotEmpty) ? notes[i] : '-'),
+                        pw.Text((scores.length > i && scores[i].isNotEmpty)
+                            ? scores[i]
+                            : '-'),
+                        pw.Text((notes.length > i && notes[i].isNotEmpty)
+                            ? notes[i]
+                            : '-'),
                       ],
                     ),
                   // صف المجموع الكامل
                   pw.TableRow(
                     children: [
-                      pw.Text('Total', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text('Total',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                       pw.Text('500'),
-                      pw.Text('$totalScore / ${convertTo25(totalScore).toStringAsFixed(2)}'),
+                      pw.Text(
+                          '$totalScore / ${convertTo25(totalScore).toStringAsFixed(2)}'),
                       pw.Text('-'),
                     ],
                   ),
                 ],
               ),
               pw.SizedBox(height: 8),
-              pw.Text('Table built, rows: ${items.length}', style: pw.TextStyle(fontSize: 10)),
+              pw.Text('Table built, rows: ${items.length}',
+                  style: pw.TextStyle(fontSize: 10)),
             ],
           );
         },
@@ -391,7 +530,8 @@ class PdfProvider extends ChangeNotifier {
           progression: null,
           deliveryDate: "",
           mainSuggestion: 0,
-          firstGrading: link);
+          firstGrading: null, // This should be set by the caller
+          pdfExaminer1: link); // Add PDF link for examiner 1
     } catch (error) {
       print('Error uploading PDF: $error');
     }
@@ -399,32 +539,60 @@ class PdfProvider extends ChangeNotifier {
 
   Future<void> uploadPdfSecondGrading(
       Uint8List uint8listFile, ProjectDetail project) async {
-    // final String? link =
-    //     await _storageService.uploadPdfFromUint8List(uint8listFile);
-    // patchProject(
-    //     id: project.id,
-    //     title: project.title,
-    //     image: project.image,
-    //     teacher: 0,
-    //     progression: null,
-    //     deliveryDate: "",
-    //     mainSuggestion: 0,
-    //     secondGrading: link);
+    try {
+      File tempFile = await createTemporaryFile(uint8listFile);
+      final fileResponse = await FileService().uploadFile(tempFile);
+
+      String? link;
+      if (fileResponse != null) {
+        link = fileResponse.data.downloadPage;
+        print('File uploaded: $link');
+      } else {
+        print('File upload failed.');
+      }
+
+      patchProject(
+          id: project.id,
+          title: project.title,
+          image: project.image,
+          teacher: 0,
+          progression: null,
+          deliveryDate: "",
+          mainSuggestion: 0,
+          secondGrading: null, // This should be set by the caller
+          pdfExaminer2: link); // Add PDF link for examiner 2
+    } catch (error) {
+      print('Error uploading PDF: $error');
+    }
   }
 
   Future<void> uploadPdfTeacherGrading(
       Uint8List uint8listFile, ProjectDetail project) async {
-    // final String? link =
-    //     await _storageService.uploadPdfFromUint8List(uint8listFile);
-    // patchProject(
-    //     id: project.id,
-    //     title: project.title,
-    //     image: project.image,
-    //     teacher: 0,
-    //     progression: null,
-    //     deliveryDate: "",
-    //     mainSuggestion: 0,
-    //     teacherGrading: link);
+    try {
+      File tempFile = await createTemporaryFile(uint8listFile);
+      final fileResponse = await FileService().uploadFile(tempFile);
+
+      String? link;
+      if (fileResponse != null) {
+        link = fileResponse.data.downloadPage;
+        print('File uploaded: $link');
+      } else {
+        print('File upload failed.');
+      }
+
+      patchProject(
+          id: project.id,
+          title: project.title,
+          image: project.image,
+          teacher: 0,
+          progression: null,
+          deliveryDate: "",
+          mainSuggestion: 0,
+          supervisorGrade: null, // This should be set by the caller
+          pdfSupervisor: link); // Add PDF link for supervisor
+    } catch (error) {
+      print('Error uploading PDF: $error');
+    }
   }
 
   Future<String?> saveAndUploadPdf({
@@ -443,7 +611,7 @@ class PdfProvider extends ChangeNotifier {
       print('notes: $notes');
       final pdfBytes = await generatePdf(
         supervisorUsername: supervisorUsername,
-        studentName: studentName,
+        studentNames: [studentName],
         projectTitle: projectTitle,
         evaluationType: evaluationType,
       );
@@ -452,24 +620,25 @@ class PdfProvider extends ChangeNotifier {
       if (fileResponse != null) {
         // محاولة الحصول على رابط مباشر للملف
         String? pdfUrl;
-        
+
         if (fileResponse.data.fileId != null) {
           // محاولة الحصول على رابط مباشر باستخدام fileId
-          final directLink = await FileService().fetchDirectLink(fileResponse.data.fileId!);
+          final directLink =
+              await FileService().fetchDirectLink(fileResponse.data.fileId!);
           if (directLink != null && directLink.data.isNotEmpty) {
             pdfUrl = directLink.data.first.directLink;
             print('Direct PDF URL obtained: $pdfUrl');
           }
         }
-        
+
         // إذا لم نحصل على رابط مباشر، استخدم downloadPage
         if (pdfUrl == null || pdfUrl.isEmpty) {
           pdfUrl = fileResponse.data.downloadPage;
           print('Using download page URL: $pdfUrl');
         }
-        
+
         print('PDF uploaded successfully. Final URL: $pdfUrl');
-        
+
         // حفظ رابط PDF في المشروع
         await patchProject(
           id: projectId,
@@ -479,7 +648,7 @@ class PdfProvider extends ChangeNotifier {
           progression: null,
           deliveryDate: "",
           mainSuggestion: 0,
-          teacherGrading: pdfUrl,
+          pdfLink: pdfUrl, // Save the PDF URL
         );
         return pdfUrl;
       } else {
@@ -514,9 +683,10 @@ class PdfProvider extends ChangeNotifier {
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
-      firstGrading: rawScore.toString(),
+      firstGrading: (rawScore / 20), // Use the correct field name
+      pdfExaminer1: pdfUrl, // Add PDF link
     );
-    
+
     // حساب وحفظ الدرجة النهائية
     await _calculateAndSaveFinalScore(project.id);
     return pdfUrl;
@@ -531,15 +701,17 @@ class PdfProvider extends ChangeNotifier {
     File tempFile = await createTemporaryFile(Uint8List.fromList(pdfBytes));
     final fileResponse = await FileService().uploadFile(tempFile);
     String? pdfUrl = fileResponse?.data.downloadPage;
+
     await patchProject(
       id: project.id,
       teacher: project.teacher?.id ?? 0,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
-      secondGrading: rawScore.toString(),
+      secondGrading: (rawScore / 20), // Use the correct field name
+      pdfExaminer2: pdfUrl, // Add PDF link
     );
-    
+
     // حساب وحفظ الدرجة النهائية
     await _calculateAndSaveFinalScore(project.id);
     return pdfUrl;
@@ -549,7 +721,7 @@ class PdfProvider extends ChangeNotifier {
   Future<String?> uploadSupervisorPdfAndScores({
     required Uint8List pdfBytes,
     required double supervisorRaw, // من 500
-    required double headScore,     // من 5
+    required double headScore, // من 5
     required double coordinatorScore, // من 5
     required ProjectDetail project,
   }) async {
@@ -562,13 +734,62 @@ class PdfProvider extends ChangeNotifier {
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
-      teacherGrading: supervisorRaw.toString(),
+      supervisorGrade: (supervisorRaw / 12.5), // Use the correct field name
+      departmentHeadGrade: headScore, // Use the correct field name
+      coordinatorGrade: coordinatorScore, // Use the correct field name
+      pdfSupervisor: pdfUrl, // Add PDF link for supervisor
+      pdfHead: pdfUrl, // Add PDF link for head
+      pdfCoordinator: pdfUrl, // Add PDF link for coordinator
       finalScore: null, // سيتم حسابها تلقائياً
     );
-    
+
     // حساب وحفظ الدرجة النهائية
     await _calculateAndSaveFinalScore(project.id);
     return pdfUrl;
+  }
+
+  /// دالة لحساب الدرجة النهائية الموزونة
+  double? _calculateWeightedFinalScore(Project project) {
+    // حساب الدرجات المحولة حسب النظام الجديد
+    double? supervisorScore = project.supervisorGrade != null
+        ? (project.supervisorGrade! / 500) * 40
+        : null;
+    double? examiner1Score = project.firstGrading != null
+        ? (project.firstGrading! / 500) * 25
+        : null;
+    double? examiner2Score = project.secondGrading != null
+        ? (project.secondGrading! / 500) * 25
+        : null;
+    double? headScore = project.departmentHeadGrade; // من 5
+    double? coordinatorScore = project.coordinatorGrade; // من 5
+
+    // التحقق من الشروط المطلوبة
+    bool hasSupervisor = supervisorScore != null;
+    bool hasExaminer1 = examiner1Score != null;
+    bool hasExaminer2 = examiner2Score != null;
+
+    if (!hasSupervisor || (!hasExaminer1 && !hasExaminer2)) {
+      return null; // لا يمكن حساب الدرجة النهائية
+    }
+
+    // جمع جميع الدرجات المتاحة
+    List<double> availableScores = [];
+    if (supervisorScore != null) availableScores.add(supervisorScore);
+    if (examiner1Score != null) availableScores.add(examiner1Score);
+    if (examiner2Score != null) availableScores.add(examiner2Score);
+    if (headScore != null) availableScores.add(headScore);
+    if (coordinatorScore != null) availableScores.add(coordinatorScore);
+
+    if (availableScores.isEmpty) {
+      return null;
+    }
+
+    // حساب الدرجة النهائية: مجموع جميع الدرجات مقسوم على عدد المقيمين × 100
+    double totalScore = availableScores.reduce((a, b) => a + b);
+    double averageScore = totalScore / availableScores.length;
+
+    // تحويل الدرجة إلى مقياس من 100
+    return (averageScore / 100) * 100;
   }
 
   /// دالة خاصة لحساب وحفظ الدرجة النهائية
@@ -581,20 +802,21 @@ class PdfProvider extends ChangeNotifier {
           "Content-Type": "application/json",
         },
       );
-      
+
       if (projectResponse.statusCode == 200) {
         final projectData = jsonDecode(projectResponse.body);
-        final project = ProjectDetail.fromJson(projectData);
-        
-        // حساب الدرجة النهائية
-        final finalScore = project.calculatedFinalScore;
-        
+        final project = Project.fromJson(projectData);
+
+        // حساب الدرجة النهائية باستخدام النظام الجديد
+        double? finalScore = _calculateWeightedFinalScore(project);
+
         if (finalScore != null) {
           // حفظ الدرجة النهائية
           await saveFinalScore(projectId, finalScore);
           print('Final score calculated and saved: $finalScore');
         } else {
-          print('Cannot calculate final score yet - missing required evaluations');
+          print(
+              'Cannot calculate final score yet - insufficient grades available');
         }
       }
     } catch (e) {
@@ -633,44 +855,117 @@ Future<String> extractTextFromPdf(String filePath) async {
 
 Future<void> pickExtractAndUploadPdf({
   required int projectId,
-  required String role, // 'examiner1', 'examiner2', 'supervisor', 'head', 'coordinator'
+  required String
+      role, // 'examiner1', 'examiner2', 'supervisor', 'head', 'coordinator'
   required BuildContext context,
 }) async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
+  FilePickerResult? result = await FilePicker.platform
+      .pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
   if (result != null && result.files.single.path != null) {
     final filePath = result.files.single.path!;
 
-    // استخراج النص من PDF باستخدام syncfusion
-    String text = await extractTextFromPdf(filePath);
+    try {
+      // استخراج النص من PDF باستخدام syncfusion
+      String text = await extractTextFromPdf(filePath);
 
-    RegExp reg = RegExp(r"الدرجة\s*:? 0*(\d+)");
-    final match = reg.firstMatch(text);
-    if (match == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("لم يتم العثور على الدرجة في الملف")),
-      );
-      return;
-    }
-    double grade = double.parse(match.group(1)!);
+      RegExp reg = RegExp(r"الدرجة\s*:? 0*(\d+)");
+      final match = reg.firstMatch(text);
+      if (match == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("لم يتم العثور على الدرجة في الملف")),
+        );
+        return;
+      }
+      double grade = double.parse(match.group(1)!);
 
-    var request = http.MultipartRequest(
-      'POST',
-      Uri.parse('http://your-backend-url/api/project/$projectId/upload-grade/'),
-    );
-    request.fields['role'] = role;
-    request.fields['grade'] = grade.toString();
-    request.files.add(await http.MultipartFile.fromPath('file', filePath));
+      // رفع الملف باستخدام FileService
+      final file = File(filePath);
+      final fileResponse = await FileService().uploadFile(file);
 
-    var response = await request.send();
-    if (response.statusCode == 200) {
+      if (fileResponse != null) {
+        String? pdfUrl = fileResponse.data.downloadPage;
+
+        // تحديث المشروع حسب نوع الدور
+        switch (role) {
+          case 'examiner1':
+            await patchProject(
+              id: projectId,
+              teacher: 0,
+              title: "",
+              image: "",
+              progression: null,
+              deliveryDate: "",
+              mainSuggestion: 0,
+              firstGrading: grade,
+              pdfExaminer1: pdfUrl,
+            );
+            break;
+          case 'examiner2':
+            await patchProject(
+              id: projectId,
+              teacher: 0,
+              title: "",
+              image: "",
+              progression: null,
+              deliveryDate: "",
+              mainSuggestion: 0,
+              secondGrading: grade,
+              pdfExaminer2: pdfUrl,
+            );
+            break;
+          case 'supervisor':
+            await patchProject(
+              id: projectId,
+              teacher: 0,
+              title: "",
+              image: "",
+              progression: null,
+              deliveryDate: "",
+              mainSuggestion: 0,
+              supervisorGrade: grade,
+              pdfSupervisor: pdfUrl,
+            );
+            break;
+          case 'head':
+            await patchProject(
+              id: projectId,
+              teacher: 0,
+              title: "",
+              image: "",
+              progression: null,
+              deliveryDate: "",
+              mainSuggestion: 0,
+              departmentHeadGrade: grade,
+              pdfHead: pdfUrl,
+            );
+            break;
+          case 'coordinator':
+            await patchProject(
+              id: projectId,
+              teacher: 0,
+              title: "",
+              image: "",
+              progression: null,
+              deliveryDate: "",
+              mainSuggestion: 0,
+              coordinatorGrade: grade,
+              pdfCoordinator: pdfUrl,
+            );
+            break;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("تم رفع الملف وحفظ الدرجة بنجاح")),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("فشل في رفع الملف")),
+        );
+      }
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("تم رفع الملف وحفظ الدرجة بنجاح")),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("فشل في رفع الملف أو حفظ الدرجة")),
+        SnackBar(content: Text("خطأ في معالجة الملف: $e")),
       );
     }
   }
 }
-

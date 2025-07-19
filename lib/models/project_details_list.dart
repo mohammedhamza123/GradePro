@@ -74,11 +74,11 @@ class ProjectDetail {
         progression: json["progression"]?.toDouble(),
         id: json["id"],
         title: json["title"],
-        supervisorRaw: json["teacher_grading"]?.toDouble(),
+        supervisorRaw: json["supervisor_grade"]?.toDouble(),
         examiner1Raw: json["first_grading"]?.toDouble(),
         examiner2Raw: json["second_grading"]?.toDouble(),
-        headScore: json["department_head_score"]?.toDouble(),
-        coordinatorScore: json["coordinator_score"]?.toDouble(),
+        headScore: json["department_head_grade"]?.toDouble(),
+        coordinatorScore: json["coordinator_grade"]?.toDouble(),
         finalScore: json["final_score"]?.toDouble(),
       );
 
@@ -91,11 +91,11 @@ class ProjectDetail {
         "progression": progression,
         "id": id,
         "title": title,
-        "teacher_grading": supervisorRaw,
+        "supervisor_grade": supervisorRaw,
         "first_grading": examiner1Raw,
         "second_grading": examiner2Raw,
-        "department_head_score": headScore,
-        "coordinator_score": coordinatorScore,
+        "department_head_grade": headScore,
+        "coordinator_grade": coordinatorScore,
         "final_score": finalScore,
       };
 
