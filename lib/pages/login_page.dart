@@ -7,9 +7,6 @@ import 'pending_approval_page.dart';
 import '../models/logging_state.dart';
 import '../services/internet_services.dart';
 
-import '../services/login_services.dart';
-import 'package:gradpro/pages/student_registration_page.dart';
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 

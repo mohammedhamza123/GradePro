@@ -10,7 +10,6 @@ import 'suggestion_styles.dart';
 import 'unified_grading_table.dart';
 import 'examiner_grading_table.dart';
 import 'examiner_grade_item.dart';
-import '../../providers/admin_teacher_provider.dart';
 
 class GradingTable extends StatefulWidget {
   final ProjectDetail? project;
@@ -85,7 +84,7 @@ class _GradingTableState extends State<GradingTable> {
   void initState() {
     super.initState();
     if (widget.project != null) {
-      projectTitleController.text = widget.project!.title ?? '';
+      projectTitleController.text = widget.project!.title;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         final teacherProvider = context.read<TeacherProvider>();
         final students = await teacherProvider
@@ -401,24 +400,17 @@ class _GradingTableState extends State<GradingTable> {
                                 onPressed: () async {
                                   final teacherProvider =
                                       context.read<TeacherProvider?>();
-                                  final userProvider =
-                                      context.read<UserProvider?>();
                                   String supervisorUsername = '';
-                                  int projectId = 0;
-                                  ProjectDetail? project;
+                                   ProjectDetail? project;
                                   int? teacherId;
                                   if (teacherProvider != null &&
                                       teacherProvider.currentProject != null) {
                                     project = teacherProvider.currentProject;
-                                    projectId = project?.id ?? 0;
                                   }
                                   if (teacherProvider != null &&
                                       teacherProvider.teacher != null) {
                                     teacherId = teacherProvider.teacher!.id;
                                   }
-                                  String studentName = selectedStudent != null
-                                      ? '${selectedStudent!.user.firstName} ${selectedStudent!.user.lastName}'
-                                      : '';
                                   String projectTitle =
                                       projectTitleController.text;
                                   final evalType = evaluationType;
@@ -552,7 +544,7 @@ class _GradingTableState extends State<GradingTable> {
         if (examiner1Score != null && examiner2Score != null) {
           return Center(
             child: Column(
-              mainAxisSize: MainAxisSize.min, 
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
@@ -582,7 +574,7 @@ class _GradingTableState extends State<GradingTable> {
                       Text(
                           'درجة ممتحن 1:  ${project!.examiner1Raw?.toStringAsFixed(2) ?? "-"} من 25'),
                       Text(
-                          'درجة ممتحن 2: ${project!.examiner2Raw?.toStringAsFixed(2) ?? "-"} من 25'),
+                          'درجة ممتحن 2: ${project.examiner2Raw?.toStringAsFixed(2) ?? "-"} من 25'),
                     ],
                   ),
                 ),
@@ -641,9 +633,6 @@ class _GradingTableState extends State<GradingTable> {
                                         .scoreController
                                         .text
                                         .length);
-                        examinerGradeItems[firstEmptyExaminerIndex]
-                            .scoreController
-                            .notifyListeners();
                         FocusScope.of(context).requestFocus(FocusNode());
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -665,23 +654,17 @@ class _GradingTableState extends State<GradingTable> {
                         return;
                       }
                       final teacherProvider = context.read<TeacherProvider?>();
-                      final userProvider = context.read<UserProvider?>();
                       String supervisorUsername = '';
-                      int projectId = 0;
                       ProjectDetail? project;
                       int? teacherId;
                       if (teacherProvider != null &&
                           teacherProvider.currentProject != null) {
                         project = teacherProvider.currentProject;
-                        projectId = project?.id ?? 0;
                       }
                       if (teacherProvider != null &&
                           teacherProvider.teacher != null) {
                         teacherId = teacherProvider.teacher!.id;
                       }
-                      String studentName = selectedStudent != null
-                          ? '${selectedStudent!.user.firstName} ${selectedStudent!.user.lastName}'
-                          : '';
                       String projectTitle = projectTitleController.text;
                       final evalType = evaluationType;
                       String? pdfUrl;

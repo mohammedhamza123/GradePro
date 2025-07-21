@@ -1,14 +1,9 @@
 import 'package:gradpro/models/channel_list.dart';
 import 'package:gradpro/models/detailed_message_list.dart';
-import 'package:gradpro/models/file_direct_link.dart';
-import 'package:gradpro/models/file_response.dart';
-import 'package:gradpro/models/image_response.dart';
 import 'package:gradpro/models/important_date_list.dart';
 import 'package:gradpro/models/message_list.dart';
-import 'package:gradpro/models/new_token.dart';
 import 'package:gradpro/models/project_details_list.dart';
 import 'package:gradpro/models/project_list.dart';
-import 'package:gradpro/models/refreshed_token.dart';
 import 'package:gradpro/models/requirement_list.dart';
 import 'package:gradpro/models/student_details_list.dart';
 import 'package:gradpro/models/student_list.dart';
@@ -20,7 +15,6 @@ import 'package:gradpro/services/endpoints.dart';
 import 'package:gradpro/services/internet_services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'dart:convert' show base64Url;
 
 String responseDecoder(http.Response response) {
   List<int> bodyBytes = response.bodyBytes;
@@ -73,20 +67,20 @@ Future<User> getMyAccount([String? expectedUsername]) async {
       throw Exception('getMyAccount timeout');
     },
   );
-  
+
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
   }
-  
+
   final jsonData = jsonDecode(body);
-  
+
   if (jsonData is Map && jsonData.containsKey('datum')) {
     final usersList = jsonData['datum'] as List;
-    
+
     if (usersList.isNotEmpty) {
       User? foundUser;
-      
+
       if (expectedUsername != null) {
         for (var userData in usersList) {
           if (userData['username'] == expectedUsername) {
@@ -95,13 +89,11 @@ Future<User> getMyAccount([String? expectedUsername]) async {
           }
         }
       }
-      
+
       if (foundUser == null) {
         String? tokenUsername = expectedUsername;
-        if (tokenUsername == null) {
-          tokenUsername = await _decodeUsernameFromToken();
-        }
-        
+        tokenUsername = await _decodeUsernameFromToken();
+
         if (tokenUsername != null) {
           for (var userData in usersList) {
             if (int.tryParse(tokenUsername) != null) {
@@ -117,14 +109,14 @@ Future<User> getMyAccount([String? expectedUsername]) async {
             }
           }
         }
-        
+
         if (foundUser == null) {
           final userData = usersList.first;
           foundUser = User.fromJson(userData);
         }
       }
-      
-      return foundUser!;
+
+      return foundUser;
     } else {
       throw Exception('No users found');
     }
@@ -137,43 +129,31 @@ Future<User> getMyAccount([String? expectedUsername]) async {
   }
 }
 
-Future<String?> _getCurrentUsernameFromToken() async {
-  try {
-    final response = await services.get('/api/token/verify/', null);
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['username'];
-    }
-  } catch (e) {
-    return null;
-  }
-}
-
 Future<String?> _decodeUsernameFromToken() async {
   try {
     final token = services.getToken();
     if (token == null) {
       return null;
     }
-    
+
     final parts = token.split('.');
     if (parts.length != 3) {
       return null;
     }
-    
+
     final payload = parts[1];
-    
+
     String paddedPayload = payload;
     if (payload.length % 4 != 0) {
       paddedPayload = payload + '=' * (4 - payload.length % 4);
     }
-    
+
     final decodedBytes = base64Url.decode(paddedPayload);
     final decodedString = utf8.decode(decodedBytes);
     final payloadData = jsonDecode(decodedString);
-    
+
     final username = payloadData['username'] ?? payloadData['user_id'];
-    
+
     return username?.toString();
   } catch (e) {
     return null;
@@ -187,22 +167,22 @@ Future<Student?> getStudent(int? id) async {
       throw Exception('getStudent timeout');
     },
   );
-  
+
   if (response.statusCode == 403) {
     throw Exception('Student not approved yet');
   }
-  
+
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
   }
-  
+
   final body = responseDecoder(response);
   final data = jsonDecode(body);
-  
+
   if (data['datum'] == null || data['datum'].isEmpty) {
     throw Exception('Student not approved yet');
   }
-  
+
   return Student.fromJson(data["datum"].first);
 }
 
@@ -245,7 +225,7 @@ Future<Project> getProject(int id) async {
       throw Exception('getProject timeout');
     },
   );
-  
+
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
@@ -377,7 +357,7 @@ Future<Student> patchStudent(
   if (serialNumber != null) {
     request["serialNumber"] = serialNumber;
   }
-  
+
   http.Response response = await services.patch("$STUDENT$id/", request);
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
@@ -406,7 +386,8 @@ Future<Requirement> postRequirement(int suggestion, String name) async {
 }
 
 Future<Suggestion> postSuggestion(Suggestion suggestionItem) async {
-  http.Response response = await services.post(SUGGESTION, suggestionItem.toJson());
+  http.Response response =
+      await services.post(SUGGESTION, suggestionItem.toJson());
   final body = responseDecoder(response);
   if (response.statusCode != 201) {
     throw Exception('${response.statusCode}:${response.body}');
@@ -474,16 +455,18 @@ Future<Requirement> patchRequirement(
 
 Future<User?> registerUser(Map<String, dynamic> user) async {
   final url = Uri.parse("https://easy0123.pythonanywhere.com$REGISTER");
-  
-  final response = await http.post(
-    url,
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: jsonEncode(user),
-    encoding: Encoding.getByName("utf-8"),
-  ).timeout(const Duration(seconds: 15));
-  
+
+  final response = await http
+      .post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: jsonEncode(user),
+        encoding: Encoding.getByName("utf-8"),
+      )
+      .timeout(const Duration(seconds: 15));
+
   final body = responseDecoder(response);
   if (response.statusCode != 201) {
     try {
@@ -622,21 +605,24 @@ Future<String> getApiKey() async {
 }
 
 Future<void> approveStudentAPI(int studentId) async {
-  http.Response response = await services.post("$STUDENT$studentId/approve/", {});
+  http.Response response =
+      await services.post("$STUDENT$studentId/approve/", {});
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
   }
 }
 
 Future<void> rejectStudentAPI(int studentId) async {
-  http.Response response = await services.post("$STUDENT$studentId/reject/", {});
+  http.Response response =
+      await services.post("$STUDENT$studentId/reject/", {});
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
   }
 }
 
 Future<StudentDetailsList> getPendingStudents() async {
-  http.Response response = await services.get("${STUDENT}pending_approval/", null);
+  http.Response response =
+      await services.get("${STUDENT}pending_approval/", null);
   final body = responseDecoder(response);
   if (response.statusCode != 200) {
     throw Exception('${response.statusCode}:${response.body}');
@@ -652,19 +638,19 @@ Future<bool> checkStudentApprovalStatus(String username) async {
         "Content-Type": "application/json",
       },
     ).timeout(const Duration(seconds: 10));
-    
+
     if (userResponse.statusCode == 200) {
       final userData = jsonDecode(userResponse.body);
       if (userData.isNotEmpty) {
         final userId = userData[0]['id'];
-        
+
         final studentResponse = await http.get(
           Uri.parse("https://easy0123.pythonanywhere.com$STUDENT?user=$userId"),
           headers: {
             "Content-Type": "application/json",
           },
         ).timeout(const Duration(seconds: 10));
-        
+
         if (studentResponse.statusCode == 200) {
           final studentData = jsonDecode(studentResponse.body);
           if (studentData['datum'] != null && studentData['datum'].isNotEmpty) {
@@ -675,7 +661,7 @@ Future<bool> checkStudentApprovalStatus(String username) async {
         }
       }
     }
-    
+
     return false;
   } catch (e) {
     return false;

@@ -43,9 +43,7 @@ class NetworkTimeoutException implements Exception {
 }
 
 class LoginService {
-  static const String _studentApprovalEndpoint = '/api/student-approval'; // Relative endpoint using base URL
-  static const int _studentGroupId = 2;
-  
+  static const String _studentApprovalEndpoint = '/api/student-approval'; // Relative endpoint using base URL  
   final InternetService _internetService = InternetService();
 
   /// Core login function with student approval system

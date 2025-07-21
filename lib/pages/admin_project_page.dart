@@ -13,11 +13,6 @@ import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import '../models/widget_FormTextField.dart';
 import '../providers/admin_project_provider.dart';
 import '../providers/edit_project_provider.dart';
-import 'admin_students_page.dart';
-import '../models/project_details_list.dart';
-import '../models/student_details_list.dart';
-import '../models/teacher_details_list.dart';
-
 class AdminProjectListPage extends StatelessWidget {
   const AdminProjectListPage({super.key});
 

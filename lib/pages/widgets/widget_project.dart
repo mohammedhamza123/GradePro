@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../models/project_details_list.dart';
 import '../../models/student_details_list.dart';
 import '../../providers/chat_provider.dart';
-import '../admin_students_page.dart';
 import 'student_list_item.dart';
 import '../../providers/admin_teacher_provider.dart';
 

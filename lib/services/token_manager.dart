@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// TokenManager - إدارة محسنة للتوكن
-/// 
+///
 /// هذا الملف يوفر إدارة مركزية للتوكن مع وظائف مساعدة
 /// للتحقق من حالة التوكن وحفظه ومسحه
 
@@ -23,14 +23,13 @@ class TokenManager {
       if (username != null) {
         await prefs.setString(_usernameKey, username);
       }
-      
+
       // انتظار قليل للتأكد من حفظ البيانات
       await Future.delayed(const Duration(milliseconds: 200));
-      
+
       // التحقق من أن التوكن تم حفظه بنجاح
-      final savedAccessToken = prefs.getString(_accessTokenKey);
-      final savedRefreshToken = prefs.getString(_refreshTokenKey);
-      
+      prefs.getString(_accessTokenKey);
+      prefs.getString(_refreshTokenKey);
     } catch (e) {
       throw Exception('فشل في حفظ بيانات الجلسة');
     }
@@ -41,15 +40,13 @@ class TokenManager {
     final prefs = await SharedPreferences.getInstance();
     try {
       await prefs.setString(_accessTokenKey, accessToken);
-      
+
       // انتظار قليل للتأكد من حفظ البيانات
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // التحقق من أن التوكن تم حفظه بنجاح
-      final savedAccessToken = prefs.getString(_accessTokenKey);
-      
-    } catch (e) {
-    }
+      prefs.getString(_accessTokenKey);
+    } catch (e) {}
   }
 
   /// الحصول على توكن الوصول
@@ -57,12 +54,12 @@ class TokenManager {
     final prefs = await SharedPreferences.getInstance();
     try {
       final token = prefs.getString(_accessTokenKey);
-      
+
       // إذا كان التوكن فارغ أو null، ارجع null
       if (token == null || token.isEmpty) {
         return null;
       }
-      
+
       return token;
     } catch (e) {
       return null;
@@ -74,12 +71,12 @@ class TokenManager {
     final prefs = await SharedPreferences.getInstance();
     try {
       final token = prefs.getString(_refreshTokenKey);
-      
+
       // إذا كان التوكن فارغ أو null، ارجع null
       if (token == null || token.isEmpty) {
         return null;
       }
-      
+
       return token;
     } catch (e) {
       return null;
@@ -99,7 +96,7 @@ class TokenManager {
 
   /// التحقق من وجود توكن صالح
   static Future<bool> hasValidToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    await SharedPreferences.getInstance();
     try {
       final token = await getAccessToken();
       final hasToken = token != null && token.isNotEmpty;
@@ -116,17 +113,15 @@ class TokenManager {
       await prefs.remove(_accessTokenKey);
       await prefs.remove(_refreshTokenKey);
       await prefs.remove(_usernameKey);
-      
+
       // انتظار قليل للتأكد من مسح البيانات
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // التحقق من أن التوكن تم مسحه بنجاح
-      final savedAccessToken = prefs.getString(_accessTokenKey);
-      final savedRefreshToken = prefs.getString(_refreshTokenKey);
-      final savedUsername = prefs.getString(_usernameKey);
-      
-    } catch (e) {
-    }
+      prefs.getString(_accessTokenKey);
+      prefs.getString(_refreshTokenKey);
+      prefs.getString(_usernameKey);
+    } catch (e) {}
   }
 
   /// مسح توكن محدد
@@ -134,7 +129,6 @@ class TokenManager {
     final prefs = await SharedPreferences.getInstance();
     try {
       await prefs.remove(tokenKey);
-    } catch (e) {
-    }
+    } catch (e) {}
   }
-} 
+}

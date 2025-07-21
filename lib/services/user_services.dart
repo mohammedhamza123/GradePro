@@ -2,7 +2,6 @@ import '../models/project_list.dart';
 import '../models/student_list.dart';
 import '../models/user_list.dart';
 import 'models_services.dart';
-import 'internet_services.dart';
 
 class UserService {
   static final UserService _userService = UserService._internal();
@@ -19,7 +18,8 @@ class UserService {
 
   Future<User?> get user async => await _getUser();
 
-  Future<User?> getUserWithUsername(String username) async => await _getUser(username);
+  Future<User?> getUserWithUsername(String username) async =>
+      await _getUser(username);
 
   Future<Student?> get student => _getStudent();
 
@@ -30,7 +30,7 @@ class UserService {
       if (_user != null) {
         return _user;
       }
-      
+
       _user = await getMyAccount(expectedUsername);
       return _user;
     } catch (e) {
@@ -42,7 +42,7 @@ class UserService {
     if (_studentProject != null) {
       return _studentProject;
     }
-    
+
     if (_studentAccount?.project != null) {
       try {
         _studentProject = await getProject(_studentAccount!.project!);
@@ -56,11 +56,11 @@ class UserService {
 
   Future<Student?> _getStudent() async {
     await _getUser();
-    
+
     if (_studentAccount != null) {
       return _studentAccount;
     }
-    
+
     if (_user != null) {
       if (_user!.groups.isNotEmpty && _user!.groups.first == 2) {
         try {
@@ -91,4 +91,4 @@ class UserService {
     _studentProject = null;
     _studentAccount = null;
   }
-} 
+}

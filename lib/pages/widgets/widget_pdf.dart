@@ -1,8 +1,5 @@
-import 'package:flutter/services.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/src/widgets/text_style.dart' as TextStylePanting;
 
-import 'package:pdf/widgets.dart';
 import '../../providers/pdf_provider.dart';
 
 class GradingTablePdf extends pw.StatelessWidget {

@@ -22,7 +22,7 @@ class UserProvider extends ChangeNotifier {
   bool _loginError = false;
   bool _isLoginLoading = false;
   bool _isVisible = false;
-  
+
   bool get isVisible => _isVisible;
   int _group = 0;
   User? _user;
@@ -74,19 +74,19 @@ class UserProvider extends ChangeNotifier {
       if (_user != null && _loggedIn) {
         return await _switchLogin();
       }
-      
+
       // تحميل التوكن من SharedPreferences بسرعة
       await _internetService.loadTokenFromPrefs();
-      
+
       // انتظار قصير جداً
       await Future.delayed(const Duration(milliseconds: 50));
-      
+
       // محاولة تحديث التوكن أولاً
       bool tokenRefreshed = await _refreshToken();
       if (tokenRefreshed) {
         return await _switchLogin();
       }
-      
+
       // إذا فشل تحديث التوكن، تحقق من وجود توكن صالح
       if (_internetService.isAuthorized()) {
         await _loadUser();
@@ -95,7 +95,7 @@ class UserProvider extends ChangeNotifier {
           return await _switchLogin();
         }
       }
-      
+
       return Logging.notUser;
     } catch (e) {
       return Logging.notUser;
@@ -119,12 +119,12 @@ class UserProvider extends ChangeNotifier {
         final bool loggedIn = await login(
             emailController.value.text, passwordController.value.text);
         _loggedIn = loggedIn;
-        
+
         if (loggedIn) {
           // Load user and set group after successful login
           await _loadUser(emailController.value.text);
           _group = _user?.groups.first ?? 0; // Default to 0 for regular users
-          
+
           // تحقق إضافي: إذا كان المستخدم طالب (group=2)، تحقق من اعتماده
           if (_group == 2) {
             try {
@@ -138,13 +138,12 @@ class UserProvider extends ChangeNotifier {
               _group = 0;
             }
           }
-          
+
           // إذا كان الطالب معتمد، تأكد من توجيهه لصفحة الطالب
-          if (_group == 2 && _studentAccount != null) {
-          }
-          
+          if (_group == 2 && _studentAccount != null) {}
+
           final Logging loginState = await _switchLogin();
-          
+
           if (loginState == Logging.notUser) {
             // إذا كان group=0 أو أي حالة غير مصرح بها
             _loginError = true;
@@ -152,7 +151,8 @@ class UserProvider extends ChangeNotifier {
             _loggedIn = false;
             _user = null;
             _group = 0;
-          } else if (loginState == Logging.admin || loginState == Logging.teacher) {
+          } else if (loginState == Logging.admin ||
+              loginState == Logging.teacher) {
             // Valid login for admin and teacher
             _loginError = false;
             _errorMessage = "";
@@ -263,7 +263,7 @@ class UserProvider extends ChangeNotifier {
           return Logging.notUser;
       }
     }
-    
+
     return Logging.notUser;
   }
 
@@ -272,10 +272,10 @@ class UserProvider extends ChangeNotifier {
     if (_user != null && _loggedIn) {
       return true;
     }
-    
+
     // انتظار قصير جداً قبل محاولة التحديث
     await Future.delayed(const Duration(milliseconds: 50));
-    
+
     // Add timeout to prevent hanging
     bool approved = await refreshLoginService().timeout(
       const Duration(seconds: 5),
@@ -283,7 +283,7 @@ class UserProvider extends ChangeNotifier {
         throw Exception('Token refresh timeout');
       },
     );
-    
+
     if (approved) {
       await _loadUser();
       if (_user != null) {
@@ -292,7 +292,7 @@ class UserProvider extends ChangeNotifier {
         return true;
       }
     }
-    
+
     return false;
   }
 
@@ -339,13 +339,13 @@ class UserProvider extends ChangeNotifier {
     if (_user != null) {
       return;
     }
-    
+
     // إذا كان لدينا username محفوظ، استخدمه
     if (expectedUsername == null) {
       final prefs = await SharedPreferences.getInstance();
       expectedUsername = prefs.getString('current_username');
     }
-    
+
     // Add timeout to prevent hanging
     _user = await getMyAccount(expectedUsername).timeout(
       const Duration(seconds: 5),
@@ -353,7 +353,7 @@ class UserProvider extends ChangeNotifier {
         throw Exception('User load timeout');
       },
     );
-    
+
     notifyListeners();
   }
 
@@ -362,7 +362,7 @@ class UserProvider extends ChangeNotifier {
     if (_studentAccount != null) {
       return;
     }
-    
+
     if (_user != null) {
       _studentAccount = await userServices.student.timeout(
         const Duration(seconds: 5),
@@ -370,22 +370,21 @@ class UserProvider extends ChangeNotifier {
           throw Exception('Student load timeout');
         },
       );
-      
+
       // تحقق من أن الطالب معتمد
       if (_studentAccount == null) {
         throw Exception('Student not approved yet');
       }
-      
+
       // تحقق إضافي من حالة الموافقة
       if (_studentAccount?.isApproved == false) {
         throw Exception('Student not approved yet');
       }
-      
+
       notifyListeners();
     } else if (_user == null) {
       throw Exception('User not loaded');
-    } else {
-    }
+    } else {}
   }
 
   Future<void> _loadProject() async {
@@ -393,7 +392,7 @@ class UserProvider extends ChangeNotifier {
     if (_studentProject != null) {
       return;
     }
-    
+
     if (_studentAccount?.project != null) {
       _studentProject = await userServices.project.timeout(
         const Duration(seconds: 5),
@@ -402,8 +401,7 @@ class UserProvider extends ChangeNotifier {
         },
       );
       notifyListeners();
-    } else {
-    }
+    } else {}
   }
 
   Future<void> _loadTeacher() async {
@@ -411,23 +409,21 @@ class UserProvider extends ChangeNotifier {
     if (_teacherAccount != null) {
       return;
     }
-    
+
     if (_user != null) {
       try {
         // تحميل بيانات المعلم باستخدام getTeacher
         final teacher = await getTeacher(_user!.id);
-        if (teacher != null) {
-          // تحويل Teacher إلى TeacherDetail أو استخدام البيانات المتاحة
-          _teacherAccount = TeacherDetail(
-            phoneNumber: teacher.phoneNumber,
-            id: teacher.id,
-            user: _user!, // استخدام _user المحمل مسبقاً
-            isExaminer: teacher.isExaminer,
-            examinedProjects: [], // Add this line
-          );
-          
-          notifyListeners();
-        }
+        // تحويل Teacher إلى TeacherDetail أو استخدام البيانات المتاحة
+        _teacherAccount = TeacherDetail(
+          phoneNumber: teacher.phoneNumber,
+          id: teacher.id,
+          user: _user!, // استخدام _user المحمل مسبقاً
+          isExaminer: teacher.isExaminer,
+          examinedProjects: [], // Add this line
+        );
+
+        notifyListeners();
       } catch (e) {
         print('Error loading teacher data: $e');
       }
@@ -470,20 +466,20 @@ class UserProvider extends ChangeNotifier {
     _errorMessage = "";
     _isPendingApproval = false;
     _pendingStudentData = null;
-    
+
     // مسح التوكن من InternetService
     _internetService.removeToken();
-    
+
     // مسح البيانات المحفوظة باستخدام TokenManager
     await TokenManager.clearAllTokens();
-    
+
     // استدعاء دالة تسجيل الخروج من LoginService
     await loginService.logout();
-    
+
     // مسح البيانات المحفوظة في UserService أيضاً
     final userService = UserService();
     userService.clearData();
-    
+
     notifyListeners();
   }
 

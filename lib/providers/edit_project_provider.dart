@@ -1,14 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:gradpro/models/project_details_list.dart';
-import '../models/suggestion_list.dart';
 import '../services/models_services.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 
 class AdminEditProjectProvider extends ChangeNotifier {
   ProjectDetail? _project;
-  Suggestion? _suggestion;
-
   ProjectDetail? get project => _project;
 
   List<ProjectDetail> _projectList = [];
@@ -109,25 +106,6 @@ class AdminEditProjectProvider extends ChangeNotifier {
   }
 
   void filterProjectList() {
-    if (searchbarController.text.isEmpty) {
-      // إذا كانت خانة البحث فارغة، نعرض كل المشاريع
-      _filteredProjectList = List.from(_projectList);
-    } else {
-      final String text = searchbarController.text.toLowerCase();
-      _filteredProjectList = _projectList.where((e) {
-        final teacher = e.teacher;
-        final user = teacher?.user;
-
-        final username = user?.username?.toLowerCase() ?? '';
-        final firstName = user?.firstName?.toLowerCase() ?? '';
-        final lastName = user?.lastName?.toLowerCase() ?? '';
-
-        return e.title.toLowerCase().contains(text) ||
-            username.contains(text) ||
-            firstName.contains(text) ||
-            lastName.contains(text);
-      }).toList();
-    }
     notifyListeners();
   }
 
@@ -213,16 +191,19 @@ class AdminEditProjectProvider extends ChangeNotifier {
 
   Future<bool> uploadGradePdf({
     required int projectId,
-    required String role, // 'examiner1', 'examiner2', 'supervisor', 'head', 'coordinator'
+    required String
+        role, // 'examiner1', 'examiner2', 'supervisor', 'head', 'coordinator'
     required double grade,
   }) async {
     // اختيار ملف PDF
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
+    FilePickerResult? result = await FilePicker.platform
+        .pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
     if (result != null && result.files.single.path != null) {
       final filePath = result.files.single.path!;
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('http://your-backend-url/api/project/ $projectId/upload-grade/'),
+        Uri.parse(
+            'http://your-backend-url/api/project/ $projectId/upload-grade/'),
       );
       request.fields['role'] = role;
       request.fields['grade'] = grade.toString();

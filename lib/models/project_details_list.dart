@@ -1,9 +1,6 @@
-/// YApi QuickType插件生成，具体参考文档:https://plugins.jetbrains.com/plugin/18847-yapi-quicktype/documentation
-
 import 'dart:convert';
 
 import 'package:gradpro/models/suggestion_list.dart';
-import 'package:gradpro/models/teacher_details_list.dart';
 
 ProjectDetailsList projectDetailsListFromJson(String str) =>
     ProjectDetailsList.fromJson(json.decode(str));

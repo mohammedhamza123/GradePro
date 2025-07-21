@@ -127,7 +127,7 @@ class _AdminTeacherListPageState extends State<AdminTeacherListPage> {
       children: List.generate(displayList.length, (index) {
         final item = displayList[index];
         return ListTile(
-          leading: item.user != null && item.user.firstName.isNotEmpty
+          leading: item.user.firstName.isNotEmpty
               ? CircleAvatar(
                   backgroundImage: const AssetImage("assets/default_profile.jpg"),
                 )
@@ -487,7 +487,6 @@ class AdminTeacherEditPage extends StatelessWidget {
                                     if (provider.teacher != null) {
                                       await context.read<AdminTeacherProvider>().patchTeacherExaminer(provider.teacher!.id, val);
                                       provider.teacher!.isExaminer = val;
-                                      provider.notifyListeners();
                                     }
                                   },
                                 ),

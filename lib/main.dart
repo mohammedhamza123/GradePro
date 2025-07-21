@@ -33,7 +33,6 @@ import 'package:gradpro/pages/welcome_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'models/logging_state.dart';
 import 'firebase_options.dart';
-import 'package:gradpro/services/internet_services.dart';
 
 GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -48,7 +47,6 @@ Future<void> main() async {
     NotificationService.instance.initialize(navigatorKey);
   } catch (e) {
     // If Firebase fails to initialize, continue without it
-    print('Firebase initialization error: $e');
   }
 
   runApp(const MyApp());
