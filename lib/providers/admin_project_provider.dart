@@ -10,7 +10,7 @@ import '../models/suggestion_list.dart';
 
 class AdminProjectProvider extends ChangeNotifier {
   bool _done = false;
-  
+
   List<ProjectDetail> _filteredProjectList = [];
   List<StudentDetail> _studentsToAdd = [];
   ProjectDetail? _currentProject;
@@ -122,13 +122,12 @@ class AdminProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  
- 
   List<StudentDetail> _filteredStudentList = [];
 
   Future<List<StudentDetail>> loadStudents({bool checkChanges = true}) async {
-    if (_isStudentsLoaded) return _studentList; // Don't load again if already loaded
-    
+    if (_isStudentsLoaded)
+      return _studentList; // Don't load again if already loaded
+
     // Check if user is authenticated before making API call
     final InternetService services = InternetService();
     if (!services.isAuthorized()) {
@@ -138,7 +137,7 @@ class AdminProjectProvider extends ChangeNotifier {
       notifyListeners();
       return _studentList;
     }
-    
+
     try {
       final data = await getStudentDetailsList();
       _studentList = data.studentDetails;
@@ -173,8 +172,8 @@ class AdminProjectProvider extends ChangeNotifier {
     if (text.isEmpty) {
       _filteredStudentList = _studentList;
     } else {
-    _filteredStudentList = _studentList
-         .where((e) =>
+      _filteredStudentList = _studentList
+          .where((e) =>
               e.user.firstName.toLowerCase().contains(text) ||
               e.user.lastName.toLowerCase().contains(text) ||
               e.user.username.toLowerCase().contains(text))
@@ -183,14 +182,15 @@ class AdminProjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<StudentDetail>> loadFilteredStudentForProject(int projectId) async {
+  Future<List<StudentDetail>> loadFilteredStudentForProject(
+      int projectId) async {
     if (_studentList.isEmpty) {
       // Check if user is authenticated before making API call
       final InternetService services = InternetService();
       if (!services.isAuthorized()) {
         return [];
       }
-      
+
       try {
         final data = await getStudentDetailsList();
         _studentList = data.studentDetails;
@@ -242,8 +242,8 @@ class AdminProjectProvider extends ChangeNotifier {
       for (StudentDetail student in studentsCopy) {
         if (student.project == null) {
           try {
-            final data = await patchStudent(
-                student.id, null, currentProject!.id, null);
+            final data =
+                await patchStudent(student.id, null, currentProject!.id, null);
             if (data.project == currentProject!.id) {
               student.project = currentProject!.id; // Update locally
             } else {
@@ -265,8 +265,9 @@ class AdminProjectProvider extends ChangeNotifier {
   // Load teachers once
   List<TeacherDetail> _filteredTeacherList = [];
   Future<List<TeacherDetail>> loadTeachers() async {
-    if (_isTeacherLoaded) return _teacherList; // Don't load again if already loaded
-    
+    if (_isTeacherLoaded)
+      return _teacherList; // Don't load again if already loaded
+
     // Check if user is authenticated before making API call
     final InternetService services = InternetService();
     if (!services.isAuthorized()) {
@@ -276,7 +277,7 @@ class AdminProjectProvider extends ChangeNotifier {
       notifyListeners();
       return _teacherList;
     }
-    
+
     try {
       final data = await getTeacherDetailsList();
       _teacherList = data.teacher;
@@ -348,12 +349,50 @@ class AdminProjectProvider extends ChangeNotifier {
     return false;
   }
 
+  // Examiner state (similar to teacher)
+  TeacherDetail? _examinerDetail;
+  List<TeacherDetail> _filteredExaminerList = [];
+
+  // Getter for current examiner
+  TeacherDetail? get examinerToSet => _examinerDetail;
+  List<TeacherDetail> get filteredExaminerList => _filteredExaminerList;
+
+  // Filter examiners from teacher list (where isExaminer == true)
+  void filterExaminerList() {
+    final text = searchbarController.text.toLowerCase();
+    final examiners = _teacherList.where((e) => e.isExaminer == true).toList();
+    if (text.isEmpty) {
+      _filteredExaminerList = examiners;
+    } else {
+      _filteredExaminerList = examiners
+          .where((e) =>
+              e.user.firstName.toLowerCase().contains(text) ||
+              e.user.lastName.toLowerCase().contains(text) ||
+              e.user.username.toLowerCase().contains(text))
+          .toList();
+    }
+    notifyListeners();
+  }
+
+  // Set current examiner
+  void setCurrentExaminer(TeacherDetail? item) {
+    _examinerDetail = item;
+    notifyListeners();
+  }
+
+  // Placeholder for assigning examiner to project (to be implemented by user)
+  Future<bool> setExaminerToProject() async {
+    // TODO: Implement API call to assign examiner to project
+    return false;
+  }
+
   // Change suggestion status
   Future<void> changeSuggestionStatus(Suggestion s, String status) async {
+    print("project refreshed after status change");
     await patchSuggestion(
         id: s.id, title: s.title, image: s.image, status: status);
+    print("project refreshed after status change");
     await loadProjects(); // Refresh the project list after status change
     notifyListeners(); // Notify listeners to update the UI
   }
 }
-

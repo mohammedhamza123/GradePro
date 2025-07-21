@@ -48,4 +48,4 @@ class AcceptSuggestionDialog extends StatelessWidget {
       ],
     );
   }
-} 
+}

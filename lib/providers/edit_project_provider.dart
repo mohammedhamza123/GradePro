@@ -106,7 +106,14 @@ class AdminEditProjectProvider extends ChangeNotifier {
   }
 
   void filterProjectList() {
-
+    String query = searchbarController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      _filteredProjectList = List.from(_projectList);
+    } else {
+      _filteredProjectList = _projectList
+          .where((project) => project.title.toLowerCase().contains(query))
+          .toList();
+    }
     notifyListeners();
   }
 

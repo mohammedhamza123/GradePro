@@ -64,6 +64,8 @@ class AdminPage extends StatelessWidget {
                       "/adminProjectAddStudent"),
                   _buildButton(
                       context, "تحديد مشرف لمشروع", "/adminProjectSetTeacher"),
+                  _buildButton(context, "تعيين ممتحن لمشروع",
+                      "/adminProjectSetExaminer"),
                   _buildButton(context, "أرشيف المشاريع", "/adminProjectList"),
                   _buildButton(
                       context, "تعديل بيانات مشروع", "/adminProjectEdit"),

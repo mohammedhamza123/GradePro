@@ -28,15 +28,17 @@ class AdminSuggestionList extends StatelessWidget {
                           return AcceptSuggestionDialog();
                         },
                       ).then((value) async {
+                        final suggestion = project.mainSuggestion;
+                        if (suggestion == null) return;
                         if (value == 'Done') {
                           await provider.changeSuggestionStatus(
-                              project.mainSuggestion!, "a");
+                              suggestion, "a");
                         } else if (value == 'Cancel') {
                           await provider.changeSuggestionStatus(
-                              project.mainSuggestion!, "r");
+                              suggestion, "r");
                         } else if (value == 'Waiting') {
                           await provider.changeSuggestionStatus(
-                              project.mainSuggestion!, "w");
+                              suggestion, "w");
                         }
                       });
                     },
@@ -58,4 +60,4 @@ class AdminSuggestionList extends StatelessWidget {
       );
     });
   }
-} 
+}

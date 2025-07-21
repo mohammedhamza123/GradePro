@@ -1333,3 +1333,355 @@ class AdminProjectAcceptPage extends StatelessWidget {
     );
   }
 }
+
+class AdminProjectSetExaminerPage extends StatefulWidget {
+  const AdminProjectSetExaminerPage({super.key});
+
+  @override
+  State<AdminProjectSetExaminerPage> createState() => _AdminProjectSetExaminerPageState();
+}
+
+class _AdminProjectSetExaminerPageState extends State<AdminProjectSetExaminerPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final provider = context.read<AdminProjectProvider>();
+        provider.refreshProjects();
+        provider.refreshTeachers(); // still needed to populate teacher list
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AdminBasePage(
+      child: Expanded(
+        child: Consumer<AdminProjectProvider>(builder: (context, provider, child) {
+          return Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text("اختر مشروع لتعيين ممتحن له",
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  children: [
+                    Text(
+                      "بحث",
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    )
+                  ],
+                ),
+              ),
+              provider.currentProject == null || provider.examinerToSet == null
+                  ? AdminSearchbar(
+                      onChanged: (String val) {
+                        provider.filterProjectsList();
+                        provider.filterExaminerList();
+                      },
+                      editingController: provider.searchbarController)
+                  : Container(),
+              !provider.isProjectSelected
+                  ? Expanded(
+                      child: FutureBuilder(
+                          future: provider.refreshProjects(),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              if (snapshot.data == true) {
+                                if (provider.filteredProjectList.isNotEmpty) {
+                                  return ListView(
+                                    children: List.generate(
+                                        provider.filteredProjectList.length,
+                                        (index) {
+                                      final item = provider.filteredProjectList[index];
+                                      if (item.id == provider.currentProject?.id) {
+                                        return Stack(
+                                          alignment: Alignment.bottomLeft,
+                                          children: [
+                                            ProjectWidget(
+                                              title: item.title,
+                                              image: item.image,
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.all(16.0),
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.white,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check_outlined,
+                                                  color: Colors.greenAccent,
+                                                  size: 38,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }
+                                      return InkWell(
+                                        onTap: () {
+                                          provider.setCurrentProject(item);
+                                        },
+                                        child: ProjectWidget(
+                                          title: item.title,
+                                          image: item.image,
+                                        ),
+                                      );
+                                    }),
+                                  );
+                                }
+                                return provider.projectList.isNotEmpty
+                                    ? ListView(
+                                        children: List.generate(
+                                            provider.projectList.length,
+                                            (index) {
+                                          final item = provider.projectList[index];
+                                          if (item.id == provider.currentProject?.id) {
+                                            return Stack(
+                                              alignment: Alignment.bottomLeft,
+                                              children: [
+                                                ProjectWidget(
+                                                  title: item.title,
+                                                  image: item.image,
+                                                ),
+                                                Padding(
+                                                  padding: const EdgeInsets.all(16.0),
+                                                  child: Container(
+                                                    decoration: const BoxDecoration(
+                                                      shape: BoxShape.circle,
+                                                      color: Colors.white,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.check_outlined,
+                                                      color: Colors.greenAccent,
+                                                      size: 38,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }
+                                          return InkWell(
+                                            onTap: () {
+                                              provider.setCurrentProject(item);
+                                            },
+                                            child: ProjectWidget(
+                                              title: item.title,
+                                              image: item.image,
+                                            ),
+                                          );
+                                        }),
+                                      )
+                                    : const Center(child: Text("لا توجد مشاريع لعرضها"));
+                              } else {
+                                return const Center(child: Text("لا توجد مشاريع لعرضها"));
+                              }
+                            }
+                            return const Center(child: CircularProgressIndicator());
+                          }),
+                    )
+                  : Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () async {
+                          await provider.refreshTeachers(); // still needed to update teacher list
+                          provider.filterExaminerList();
+                        },
+                        child: FutureBuilder(
+                            future: provider.refreshTeachers(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                if (provider.filteredExaminerList.isNotEmpty) {
+                                  return ListView(
+                                    children: List.generate(
+                                        provider.filteredExaminerList.length,
+                                        (index) {
+                                      final item = provider.filteredExaminerList[index];
+                                      if (provider.examinerToSet?.id == item.id) {
+                                        return Stack(
+                                          alignment: Alignment.bottomLeft,
+                                          children: [
+                                            StudentListItem(
+                                                imageLink: "",
+                                                firstName: item.user.firstName,
+                                                lastName: item.user.lastName,
+                                                userName: item.user.username),
+                                            Padding(
+                                              padding: const EdgeInsets.all(16.0),
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: Colors.white,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check_outlined,
+                                                  color: Colors.greenAccent,
+                                                  size: 38,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }
+                                      return InkWell(
+                                        onTap: () {
+                                          provider.setCurrentExaminer(item);
+                                        },
+                                        child: StudentListItem(
+                                            imageLink: "",
+                                            firstName: item.user.firstName,
+                                            lastName: item.user.lastName,
+                                            userName: item.user.username),
+                                      );
+                                    }),
+                                  );
+                                }
+                                return ListView(
+                                  children: List.generate(provider.filteredExaminerList.length,
+                                      (index) {
+                                    final item = provider.filteredExaminerList[index];
+                                    if (provider.examinerToSet?.id == item.id) {
+                                      return Stack(
+                                        alignment: Alignment.bottomLeft,
+                                        children: [
+                                          StudentListItem(
+                                              imageLink: "",
+                                              firstName: item.user.firstName,
+                                              lastName: item.user.lastName,
+                                              userName: item.user.username),
+                                          Padding(
+                                            padding: const EdgeInsets.all(16.0),
+                                            child: Container(
+                                              decoration: const BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white,
+                                              ),
+                                              child: const Icon(
+                                                Icons.check_outlined,
+                                                color: Colors.greenAccent,
+                                                size: 38,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    }
+                                    return InkWell(
+                                      onTap: () {
+                                        provider.setCurrentExaminer(item);
+                                      },
+                                      child: StudentListItem(
+                                          imageLink: "",
+                                          firstName: item.user.firstName,
+                                          lastName: item.user.lastName,
+                                          userName: item.user.username),
+                                    );
+                                  }),
+                                );
+                              }
+                              if (snapshot.connectionState == ConnectionState.done) {
+                                if (snapshot.hasError) {
+                                  return Text(" [31m\$snapshot [0m");
+                                }
+                              }
+                              return const Center(child: CircularProgressIndicator());
+                            }),
+                      ),
+                    ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        provider.setIsProjectSelected(false);
+                        provider.setCurrentProject(null);
+                        provider.setCurrentExaminer(null);
+                      },
+                      style: const ButtonStyle(
+                          backgroundColor: MaterialStatePropertyAll(Color(0xff00577B))),
+                      child: const Text(
+                        "تراجع",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: provider.isProjectSelected && provider.examinerToSet != null
+                            ? () async {
+                                final response = await provider.setExaminerToProject();
+                                const snackBar = SnackBar(
+                                  content: Text('تم تعيين ممتحن للمشروع'),
+                                );
+                                const snackBarFailed = SnackBar(
+                                  content: Text('لم يتم تعيين ممتحن للمشروع'),
+                                );
+                                if (response) {
+                                  ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(snackBarFailed);
+                                }
+                                provider.setIsProjectSelected(false);
+                                provider.setCurrentProject(null);
+                                provider.setCurrentExaminer(null);
+                              }
+                            : provider.currentProject != null && provider.isProjectSelected == false
+                                ? () {
+                                    provider.setIsProjectSelected(true);
+                                  }
+                                : null,
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.resolveWith<Color>((states) {
+                            if (states.contains(MaterialState.disabled)) {
+                              return Colors.grey;
+                            }
+                            return const Color(0xff00577B);
+                          }),
+                        ),
+                        child: !provider.isProjectSelected
+                            ? const Text(
+                                "أختر المشروع",
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                    color: Colors.white),
+                              )
+                            : provider.examinerToSet == null
+                                ? const Text(
+                                    "أختر ممتحن",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                        color: Colors.white),
+                                  )
+                                : const Text(
+                                    "تعيين",
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 20,
+                                        color: Colors.white),
+                                  ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
+}

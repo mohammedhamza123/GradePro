@@ -103,9 +103,13 @@ class AddSuggestionPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          "إختيار صورة",
-                          style: kBodyTextStyle,
+                        Flexible(
+                          child: Text(
+                            "إختيار صورة",
+                            style: kBodyTextStyle,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
                         ),
                         IconButton(
                           onPressed: () async {
@@ -130,58 +134,57 @@ class AddSuggestionPage extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    Row(
+                    Flex(
+                      direction: Axis.horizontal,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              provider.setNewSuggestion(false);
-                            },
-                            style: kButtonStyle,
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: Icon(Icons.arrow_back_ios),
-                                ),
-                                Text(
-                                  "رجوع",
-                                  style: kBodyTextStyle,
-                                ),
-                              ],
-                            ),
+                        ElevatedButton(
+                          onPressed: () {
+                            provider.setNewSuggestion(false);
+                          },
+                          style: kButtonStyle,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.arrow_back_ios,
+                                  color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(
+                                "رجوع",
+                                style: kBodyTextStyle.copyWith(
+                                    color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return SaveConfirmationDialog(onPress: () {
-                                      provider.loadingSaveSuggestion = true;
-                                      provider.createProject();
-                                      provider.setNewSuggestion(false);
-                                    });
-                                  });
-                            },
-                            style: kButtonStyle,
-                            child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  "حفظ المقترح",
-                                  style: kTitleTextStyle,
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.all(8.0),
-                                  child: Icon(Icons.save),
-                                )
-                              ],
-                            ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            await showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return SaveConfirmationDialog(onPress: () {
+                                  provider.loadingSaveSuggestion = true;
+                                  provider.createProject();
+                                  provider.setNewSuggestion(false);
+                                });
+                              },
+                            );
+                          },
+                          style: kButtonStyle,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.save, color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(
+                                "حفظ المقترح",
+                                style: kBodyTextStyle.copyWith(
+                                    color: Colors.white),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -195,4 +198,4 @@ class AddSuggestionPage extends StatelessWidget {
       }),
     );
   }
-} 
+}

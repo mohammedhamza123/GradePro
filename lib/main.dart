@@ -123,8 +123,12 @@ class MyApp extends StatelessWidget {
           '/adminExaminerDelete': (context) => const AdminExaminerDeletePage(),
           // Admin Project Routes
           '/adminProjectAccept': (context) => const AdminProjectAcceptPage(),
-          '/adminProjectAddStudent': (context) => const AdminProjectAddStudentPage(),
-          '/adminProjectSetTeacher': (context) => const AdminProjectSetTeacherPage(),
+          '/adminProjectAddStudent': (context) =>
+              const AdminProjectAddStudentPage(),
+          '/adminProjectSetTeacher': (context) =>
+              const AdminProjectSetTeacherPage(),
+          '/adminProjectSetExaminer': (context) =>
+              const AdminProjectSetExaminerPage(),
           '/adminProjectList': (context) => const AdminProjectListPage(),
           '/adminProjectEdit': (context) => const AdminProjectEditPage(),
           '/adminProjectDelete': (context) => const AdminProjectDeletePage(),
