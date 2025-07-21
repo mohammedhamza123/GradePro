@@ -100,14 +100,9 @@ class TeacherProvider extends ChangeNotifier {
     if (!services.isAuthorized()) {
       return false;
     }
-
     try {
       final data = await getProjectDetailsList();
       _projectList = data.datum;
-      print('Loaded _projectList with  [36m [1m [0m [39m projects');
-      for (var p in _projectList) {
-        print('Project: id= [36m [1m [0m [39m, title= [36m [1m [0m [39m');
-      }
       notifyListeners();
       return true;
     } catch (e) {
@@ -118,7 +113,6 @@ class TeacherProvider extends ChangeNotifier {
 
   List<ProjectDetail> setTeacherProjects() {
     if (_projectList.isNotEmpty && teacher != null) {
-      // Only show projects where the teacher is the supervisor
       return _projectList.where((element) => element.teacher == teacher!.id).toList();
     } else {
       return [];

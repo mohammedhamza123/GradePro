@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:gradpro/models/suggestion_list.dart';
+import 'package:gradpro/models/teacher_details_list.dart';
 
 ProjectDetailsList projectDetailsListFromJson(String str) =>
     ProjectDetailsList.fromJson(json.decode(str));
@@ -46,7 +47,7 @@ class ProjectDetail {
   Suggestion? mainSuggestion;
   String image;
   DateTime? deliveryDate;
-  int? teacher; // changed from TeacherDetail? to int?
+  TeacherDetail? teacher; // changed from TeacherDetail? to int?
   double progression;
   int id;
   String title;
@@ -65,7 +66,7 @@ class ProjectDetail {
         deliveryDate: json["delivery_date"] == null
             ? null
             : DateTime.parse(json["delivery_date"]),
-        teacher: json["teacher"], // just assign the int
+        teacher: json["teacher"] != null ? TeacherDetail.fromJson(json["teacher"]) : null,
         progression: json["progression"]?.toDouble(),
         id: json["id"],
         title: json["title"],

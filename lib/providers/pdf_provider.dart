@@ -654,7 +654,7 @@ class PdfProvider extends ChangeNotifier {
     String? pdfUrl = fileResponse?.data.downloadPage;
     await patchProject(
       id: project.id,
-      teacher: project.teacher,
+      teacher: project.teacher?.id,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
@@ -679,7 +679,7 @@ class PdfProvider extends ChangeNotifier {
 
     await patchProject(
       id: project.id,
-      teacher: project.teacher,
+      teacher: project.teacher?.id,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
@@ -705,7 +705,7 @@ class PdfProvider extends ChangeNotifier {
     String? pdfUrl = fileResponse?.data.downloadPage;
     await patchProject(
       id: project.id,
-      teacher: project.teacher,
+      teacher: project.teacher?.id,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,

@@ -41,7 +41,6 @@ class _TeacherArchiveState extends State<TeacherArchive> {
   @override
   void initState() {
     super.initState();
-    // Cache the future to avoid repeated API calls
     final provider = Provider.of<TeacherProvider>(context, listen: false);
     _projectsFuture = provider.loadProjects();
   }
@@ -52,109 +51,107 @@ class _TeacherArchiveState extends State<TeacherArchive> {
       // Debug prints for the two lists
       print('teacherProjectList: ' + provider.teacherProjectList.map((e) => 'id: \\${e.id}, title: \\${e.title}').toList().toString());
       print('examinedProjectDetails: ' + provider.examinedProjectDetails.map((e) => 'id: \\${e.id}, title: \\${e.title}').toList().toString());
-      return Expanded(
-        child: FutureBuilder<bool>(
-          future: _projectsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              if (snapshot.data == true) {
-                return SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 16),
-                      const Center(
-                        child: Text(
-                          "المشاريع المشرف عليها",
-                          style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
+      return FutureBuilder<bool>(
+        future: _projectsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            if (snapshot.data == true) {
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Center(
+                      child: Text(
+                        "المشاريع المشرف عليها",
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 8),
-                      provider.teacherProjectList.isNotEmpty
-                          ? Column(
-                              children: List.generate(
-                                provider.teacherProjectList.length,
-                                (index) {
-                                  final item =
-                                      provider.teacherProjectList[index];
-                                  return Center(
-                                    child: Card(
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 8, horizontal: 16),
-                                      child: SizedBox(
-                                        width: 350,
-                                        child: ListTile(
-                                          title:
-                                              Center(child: Text(item.title)),
-                                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    provider.teacherProjectList.isNotEmpty
+                        ? Column(
+                            children: List.generate(
+                              provider.teacherProjectList.length,
+                              (index) {
+                                final item =
+                                    provider.teacherProjectList[index];
+                                return Center(
+                                  child: Card(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 16),
+                                    child: SizedBox(
+                                      width: 350,
+                                      child: ListTile(
+                                        title:
+                                            Center(child: Text(item.title)),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                            )
-                          : const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 32),
-                              child: Center(
-                                child: Text(
-                                  "لا توجد مشاريع يتم الاشراف عليها",
-                                  textAlign: TextAlign.center,
-                                ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: Center(
+                              child: Text(
+                                "لا توجد مشاريع يتم الاشراف عليها",
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                      const SizedBox(height: 32),
-                      const Center(
-                        child: Text(
-                          "المشاريع الممتحن عليها",
-                          style: TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold),
-                        ),
+                          ),
+                    const SizedBox(height: 32),
+                    const Center(
+                      child: Text(
+                        "المشاريع الممتحن عليها",
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 8),
-                      provider.examinedProjectDetails.isNotEmpty
-                          ? Column(
-                              children: List.generate(
-                                provider.examinedProjectDetails.length,
-                                (index) {
-                                  final item =
-                                      provider.examinedProjectDetails[index];
-                                  return Center(
-                                    child: Card(
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 8, horizontal: 16),
-                                      child: SizedBox(
-                                        width: 350,
-                                        child: ListTile(
-                                          title:
-                                              Center(child: Text(item.title)),
-                                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    provider.examinedProjectDetails.isNotEmpty
+                        ? Column(
+                            children: List.generate(
+                              provider.examinedProjectDetails.length,
+                              (index) {
+                                final item =
+                                    provider.examinedProjectDetails[index];
+                                return Center(
+                                  child: Card(
+                                    margin: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 16),
+                                    child: SizedBox(
+                                      width: 350,
+                                      child: ListTile(
+                                        title:
+                                            Center(child: Text(item.title)),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                            )
-                          : const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 32),
-                              child: Center(
-                                child: Text(
-                                  "لا توجد مشاريع لإمتحانها",
-                                  textAlign: TextAlign.center,
-                                ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        : const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: Center(
+                              child: Text(
+                                "لا توجد مشاريع لإمتحانها",
+                                textAlign: TextAlign.center,
                               ),
                             ),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                );
-              } else {
-                return const Center(child: Text("لا توجد مشاريع لعرضها"));
-              }
+                          ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              );
+            } else {
+              return const Center(child: Text("لا توجد مشاريع لعرضها"));
             }
-            return const Center(child: CircularProgressIndicator());
-          },
-        ),
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
       );
     });
   }

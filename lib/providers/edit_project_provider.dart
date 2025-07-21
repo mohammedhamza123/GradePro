@@ -106,6 +106,7 @@ class AdminEditProjectProvider extends ChangeNotifier {
   }
 
   void filterProjectList() {
+
     notifyListeners();
   }
 

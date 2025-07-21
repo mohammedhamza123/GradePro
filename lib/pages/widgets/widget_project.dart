@@ -190,66 +190,86 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Tooltip(
-                              message: widget.project.examiner1Raw != null 
-                                ? "عرض التقييم الأول" 
-                                : "لا يوجد تقييم أول",
+                              message: widget.project.examiner1Raw != null
+                                  ? "عرض التقييم الأول"
+                                  : "لا يوجد تقييم أول",
                               child: IconButton(
                                   onPressed: () {
                                     if (widget.project.examiner1Raw != null) {
-                                      provider
-                                          .setPdf(widget.project.examiner1Raw!.toString());
-                                      Navigator.pushNamed(context, "/pdfViewer");
+                                      provider.setPdf(widget
+                                          .project.examiner1Raw!
+                                          .toString());
+                                      Navigator.pushNamed(
+                                          context, "/pdfViewer");
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("لا يوجد تقييم أول محفوظ")),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                "لا يوجد تقييم أول محفوظ")),
                                       );
                                     }
                                   },
                                   icon: Icon(Icons.picture_as_pdf,
-                                      color: widget.project.examiner1Raw != null ? Colors.blue : Colors.grey)),
+                                      color: widget.project.examiner1Raw != null
+                                          ? Colors.blue
+                                          : Colors.grey)),
                             ),
                             Tooltip(
-                              message: widget.project.examiner2Raw != null 
-                                ? "عرض التقييم الثاني" 
-                                : "لا يوجد تقييم ثاني",
+                              message: widget.project.examiner2Raw != null
+                                  ? "عرض التقييم الثاني"
+                                  : "لا يوجد تقييم ثاني",
                               child: IconButton(
                                   onPressed: () {
                                     if (widget.project.examiner2Raw != null) {
-                                      provider
-                                          .setPdf(widget.project.examiner2Raw!.toString());
-                                      Navigator.pushNamed(context, "/pdfViewer");
+                                      provider.setPdf(widget
+                                          .project.examiner2Raw!
+                                          .toString());
+                                      Navigator.pushNamed(
+                                          context, "/pdfViewer");
                                     } else {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("لا يوجد تقييم ثاني محفوظ")),
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                "لا يوجد تقييم ثاني محفوظ")),
                                       );
                                     }
                                   },
                                   icon: Icon(
                                     Icons.picture_as_pdf,
-                                    color: widget.project.examiner2Raw != null ? Colors.green : Colors.grey,
+                                    color: widget.project.examiner2Raw != null
+                                        ? Colors.green
+                                        : Colors.grey,
                                   )),
                             ),
                             Tooltip(
-                              message: widget.project.supervisorRaw != null 
-                                ? "عرض تقييم المشرف" 
-                                : "لا يوجد تقييم مشرف محفوظ",
-                              child: IconButton(
-                                  onPressed: () {
-                                    print('supervisorRaw value:  [widget.project.supervisorRaw]');
-                                    if (widget.project.supervisorRaw != null) {
-                                      print('Setting PDF URL:  [widget.project.supervisorRaw]');
-                                      provider.setPdf(widget.project.supervisorRaw!.toString());
-                                      print('Navigating to PDF viewer');
-                                      Navigator.pushNamed(context, "/pdfViewer");
-                                    } else {
-                                      print('No supervisor grading found');
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(content: Text("لا يوجد تقييم مشرف محفوظ")),
-                                      );
-                                    }
-                                  },
-                                  icon: Icon(Icons.picture_as_pdf,
-                                      color: widget.project.supervisorRaw != null ? Colors.orange : Colors.grey))),
+                                message: widget.project.supervisorRaw != null
+                                    ? "عرض تقييم المشرف"
+                                    : "لا يوجد تقييم مشرف محفوظ",
+                                child: IconButton(
+                                    onPressed: () {
+                                      if (widget.project.supervisorRaw !=
+                                          null) {
+                                        provider.setPdf(widget
+                                            .project.supervisorRaw!
+                                            .toString());
+                                        Navigator.pushNamed(
+                                            context, "/pdfViewer");
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                              content: Text(
+                                                  "لا يوجد تقييم مشرف محفوظ")),
+                                        );
+                                      }
+                                    },
+                                    icon: Icon(Icons.picture_as_pdf,
+                                        color:
+                                            widget.project.supervisorRaw != null
+                                                ? Colors.orange
+                                                : Colors.grey))),
                           ],
                         );
                       }),
@@ -258,7 +278,7 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                         children: [
                           widget.project.teacher != null
                               ? Text(
-                                  " المشرف: ${Provider.of<AdminTeacherProvider>(context, listen: false).getTeacherById(widget.project.teacher)?.user.firstName ?? ''} ${Provider.of<AdminTeacherProvider>(context, listen: false).getTeacherById(widget.project.teacher)?.user.lastName ?? ''}",
+                                  " المشرف: ${widget.project.teacher?.user.firstName} ${widget.project.teacher?.user.lastName}",
                                   style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600),
@@ -283,11 +303,9 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                             const SizedBox(
                               width: 16,
                             ),
-                            widget.project.progression != null
-                                ? Expanded(
-                                    child: LinearProgressIndicator(
-                                        value: widget.project.progression))
-                                : Container(),
+                            Expanded(
+                                child: LinearProgressIndicator(
+                                    value: widget.project.progression))
                           ],
                         ),
                       ),
