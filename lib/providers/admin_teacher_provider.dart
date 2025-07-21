@@ -138,4 +138,28 @@ class AdminTeacherProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  Future<void> patchTeacherExaminer(int teacherId, bool isExaminer) async {
+    try {
+      await patchTeacher(teacherId, null, isExaminer);
+      final index = _teacherList.indexWhere((t) => t.id == teacherId);
+      if (index != -1) {
+        _teacherList[index].isExaminer = isExaminer;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error patching teacher examiner: $e');
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  TeacherDetail? getTeacherById(int? id) {
+    if (id == null) return null;
+    try {
+      return _teacherList.firstWhere((t) => t.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
 }

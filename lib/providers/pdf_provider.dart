@@ -482,9 +482,7 @@ class PdfProvider extends ChangeNotifier {
       String? link;
       if (fileResponse != null) {
         link = fileResponse.data.downloadPage; // Use null-aware operator
-        print('File uploaded: $link');
       } else {
-        print('File upload failed.');
       }
 
       patchProject(
@@ -497,14 +495,12 @@ class PdfProvider extends ChangeNotifier {
         mainSuggestion: 0,
       );
     } catch (error) {
-      print('Error uploading PDF: $error');
     }
     createTemporaryFile(uint8listFile).then((File file) {
       // Temporary file creation is complete
       // You can now use the 'file' object
     }).catchError((error) {
       // An error occurred during the temporary file creation process
-      print('Error creating temporary file: $error');
     });
   }
 
@@ -517,9 +513,7 @@ class PdfProvider extends ChangeNotifier {
       String? link;
       if (fileResponse != null) {
         link = fileResponse.data.downloadPage;
-        print('File uploaded: $link');
       } else {
-        print('File upload failed.');
       }
 
       patchProject(
@@ -533,7 +527,6 @@ class PdfProvider extends ChangeNotifier {
           firstGrading: null, // This should be set by the caller
           pdfExaminer1: link); // Add PDF link for examiner 1
     } catch (error) {
-      print('Error uploading PDF: $error');
     }
   }
 
@@ -546,9 +539,7 @@ class PdfProvider extends ChangeNotifier {
       String? link;
       if (fileResponse != null) {
         link = fileResponse.data.downloadPage;
-        print('File uploaded: $link');
       } else {
-        print('File upload failed.');
       }
 
       patchProject(
@@ -562,7 +553,6 @@ class PdfProvider extends ChangeNotifier {
           secondGrading: null, // This should be set by the caller
           pdfExaminer2: link); // Add PDF link for examiner 2
     } catch (error) {
-      print('Error uploading PDF: $error');
     }
   }
 
@@ -575,9 +565,7 @@ class PdfProvider extends ChangeNotifier {
       String? link;
       if (fileResponse != null) {
         link = fileResponse.data.downloadPage;
-        print('File uploaded: $link');
       } else {
-        print('File upload failed.');
       }
 
       patchProject(
@@ -591,7 +579,6 @@ class PdfProvider extends ChangeNotifier {
           supervisorGrade: null, // This should be set by the caller
           pdfSupervisor: link); // Add PDF link for supervisor
     } catch (error) {
-      print('Error uploading PDF: $error');
     }
   }
 
@@ -603,12 +590,6 @@ class PdfProvider extends ChangeNotifier {
     required int projectId,
   }) async {
     try {
-      print('supervisorUsername: $supervisorUsername');
-      print('studentName: $studentName');
-      print('projectTitle: $projectTitle');
-      print('evaluationType: $evaluationType');
-      print('scores: $scores');
-      print('notes: $notes');
       final pdfBytes = await generatePdf(
         supervisorUsername: supervisorUsername,
         studentNames: [studentName],
@@ -627,17 +608,13 @@ class PdfProvider extends ChangeNotifier {
               await FileService().fetchDirectLink(fileResponse.data.fileId!);
           if (directLink != null && directLink.data.isNotEmpty) {
             pdfUrl = directLink.data.first.directLink;
-            print('Direct PDF URL obtained: $pdfUrl');
           }
         }
 
         // إذا لم نحصل على رابط مباشر، استخدم downloadPage
         if (pdfUrl == null || pdfUrl.isEmpty) {
           pdfUrl = fileResponse.data.downloadPage;
-          print('Using download page URL: $pdfUrl');
         }
-
-        print('PDF uploaded successfully. Final URL: $pdfUrl');
 
         // حفظ رابط PDF في المشروع
         await patchProject(
@@ -652,11 +629,9 @@ class PdfProvider extends ChangeNotifier {
         );
         return pdfUrl;
       } else {
-        print('File upload failed - fileResponse is null');
         return null;
       }
     } catch (e) {
-      print('Error saving and uploading PDF: $e');
       return null;
     }
   }
@@ -679,7 +654,7 @@ class PdfProvider extends ChangeNotifier {
     String? pdfUrl = fileResponse?.data.downloadPage;
     await patchProject(
       id: project.id,
-      teacher: project.teacher?.id ?? 0,
+      teacher: project.teacher,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
@@ -704,7 +679,7 @@ class PdfProvider extends ChangeNotifier {
 
     await patchProject(
       id: project.id,
-      teacher: project.teacher?.id ?? 0,
+      teacher: project.teacher,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
@@ -730,7 +705,7 @@ class PdfProvider extends ChangeNotifier {
     String? pdfUrl = fileResponse?.data.downloadPage;
     await patchProject(
       id: project.id,
-      teacher: project.teacher?.id ?? 0,
+      teacher: project.teacher,
       progression: project.progression,
       deliveryDate: project.deliveryDate?.toIso8601String() ?? "",
       mainSuggestion: project.mainSuggestion?.id ?? 0,
@@ -813,14 +788,10 @@ class PdfProvider extends ChangeNotifier {
         if (finalScore != null) {
           // حفظ الدرجة النهائية
           await saveFinalScore(projectId, finalScore);
-          print('Final score calculated and saved: $finalScore');
         } else {
-          print(
-              'Cannot calculate final score yet - insufficient grades available');
         }
       }
     } catch (e) {
-      print('Error calculating final score: $e');
     }
   }
 
@@ -837,9 +808,7 @@ class PdfProvider extends ChangeNotifier {
         mainSuggestion: 0,
         finalScore: finalScore,
       );
-      print('Final score saved successfully: $finalScore');
     } catch (e) {
-      print('Error saving final score: $e');
     }
   }
 }

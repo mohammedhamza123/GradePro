@@ -474,8 +474,6 @@ Future<Requirement> patchRequirement(
 
 Future<User?> registerUser(Map<String, dynamic> user) async {
   final url = Uri.parse("https://easy0123.pythonanywhere.com$REGISTER");
-  print("Attempting registration to: $url");
-  print("User data: ${jsonEncode(user)}");
   
   final response = await http.post(
     url,
@@ -486,8 +484,6 @@ Future<User?> registerUser(Map<String, dynamic> user) async {
     encoding: Encoding.getByName("utf-8"),
   ).timeout(const Duration(seconds: 15));
   
-  print("Registration response status: ${response.statusCode}");
-  print("Registration response body: ${response.body}");
   final body = responseDecoder(response);
   if (response.statusCode != 201) {
     try {

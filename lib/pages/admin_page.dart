@@ -55,19 +55,6 @@ class AdminPage extends StatelessWidget {
               ),
               _buildSection(
                 context,
-                title: "الممتحنين",
-                image: "assets/examiner-image-admin.png",
-                buttons: [
-                  _buildButton(
-                      context, "قائمة الممتحنين", "/adminExaminerList"),
-                  _buildButton(context, "إضافة ممتحن", "/adminExaminerAdd"),
-                  _buildButton(
-                      context, "تعديل بيانات ممتحن", "/adminExaminerEdit"),
-                  _buildButton(context, "حذف ممتحن", "/adminExaminerDelete"),
-                ],
-              ),
-              _buildSection(
-                context,
                 title: "المشاريع",
                 image: "assets/project-image-admin.png",
                 buttons: [

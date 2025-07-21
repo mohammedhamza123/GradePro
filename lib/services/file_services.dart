@@ -40,18 +40,13 @@ class FileService {
         ),
       );
 
-      print('✅ Status code: ${response.statusCode}');
-      print('📦 Response body: ${response.data}');
-
       if (response.statusCode == 200) {
         final data = response.data;
         return fileResponseFromJson(jsonEncode(data));
       } else {
-        print('❌ Error uploading file: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('❌ Dio error: $e');
       return null;
     }
   }
@@ -67,13 +62,11 @@ class FileService {
       if (response.statusCode == 200) {
         return fileDirectLinkFromJson(response.body);
       } else {
-        print('❌ Error fetching direct link: ${response.statusCode}');
-        print(response.body);
+        return null;
       }
     } catch (error) {
-      print('❌ Exception fetching direct link: $error');
+      return null;
     }
-    return null;
   }
 
   /// ✅ حذف ملفات أو مجلدات عبر ID
@@ -88,15 +81,11 @@ class FileService {
     try {
       final response = await http.delete(url, headers: headers, body: body);
       if (response.statusCode == 200) {
-        print('🗑 Deleted successfully');
         return true;
       } else {
-        print('❌ Delete failed: ${response.statusCode}');
-        print(response.body);
         return false;
       }
     } catch (error) {
-      print('❌ Exception deleting content: $error');
       return false;
     }
   }

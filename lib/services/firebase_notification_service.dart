@@ -51,7 +51,6 @@ class NotificationService {
     await Firebase.initializeApp();
 
     // TODO: Only log or store messages; don't show notifications directly.
-    print("Received background message: ${message.messageId}");
   }
 
   /// Initializes local notification plugin and Android channel
@@ -100,7 +99,6 @@ class NotificationService {
   /// Handle foreground, background, and terminated message events
   Future<void> _setupMessageHandlers() async {
     FirebaseMessaging.onMessage.listen((message) async {
-      print("Foreground message: ${message.messageId}");
       await showNotification(message);
       // final chatProvider = Provider.of<ChatProvider>(
       //   navigatorKey.currentState!.context,
@@ -122,13 +120,11 @@ class NotificationService {
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      print("App opened via notification: ${message.messageId}");
       _handleMessageNavigation(message);
     });
 
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      print("App launched via notification: ${initialMessage.messageId}");
       _handleMessageNavigation(initialMessage);
     }
   }

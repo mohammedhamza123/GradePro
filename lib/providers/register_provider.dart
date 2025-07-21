@@ -20,6 +20,12 @@ class RegisterProvider extends ChangeNotifier {
 
   bool _canRegister = false;
   bool _isLoading = false;
+  bool _isExaminer = false;
+  bool get isExaminer => _isExaminer;
+  set isExaminer(bool value) {
+    _isExaminer = value;
+    notifyListeners();
+  }
 
   bool get canRegister => _canRegister;
 
@@ -96,6 +102,7 @@ class RegisterProvider extends ChangeNotifier {
       lastName.text = "";
       firstName.text = "";
       serialNumber.text = "";
+      _isExaminer = false;
       _isLoading = false;
       _success = "تم التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة قبل تفعيل الحساب.";
       _error = "";

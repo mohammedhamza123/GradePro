@@ -352,6 +352,8 @@ class AdminProjectProvider extends ChangeNotifier {
   Future<void> changeSuggestionStatus(Suggestion s, String status) async {
     await patchSuggestion(
         id: s.id, title: s.title, image: s.image, status: status);
+    await loadProjects(); // Refresh the project list after status change
+    notifyListeners(); // Notify listeners to update the UI
   }
 }
 

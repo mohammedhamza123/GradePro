@@ -83,10 +83,6 @@ class LoginService {
         {"username": username, "password": password}
       );
 
-      // Debug logging
-      print('DEBUG: Login response status: ${tokenBody.statusCode}');
-      print('DEBUG: Login response body: ${tokenBody.body}');
-
       // Check both status code and response body
       if (tokenBody.statusCode != 200) {
         throw Exception('فشل في تسجيل الدخول. يرجى التحقق من بياناتك.');

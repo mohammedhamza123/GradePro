@@ -81,7 +81,20 @@ class AddSuggestionPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius:
                                     BorderRadius.circular(kCardRadius),
-                                child: Image.network(provider.suggestionUrl),
+                                child: Image.network(
+                                  provider.suggestionUrl,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset(
+                                      "assets/missing_image_icon.png",
+                                      fit: BoxFit.contain,
+                                      width: 250,
+                                      height: 250,
+                                    );
+                                  },
+                                  fit: BoxFit.cover,
+                                  width: 250,
+                                  height: 250,
+                                ),
                               ),
                             ),
                           )

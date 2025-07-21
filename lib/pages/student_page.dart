@@ -40,7 +40,8 @@ class StudentPage extends StatelessWidget {
               onPressed: () {
                 Navigator.pushNamed(context, '/chat');
               },
-              child: const Icon(Icons.chat)),
+              backgroundColor: const Color(0xff00577B),
+              child: const Icon(Icons.chat, color: Colors.white)),
           body: Column(
             children: [
               provider.selectedIndex == 0

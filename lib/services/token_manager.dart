@@ -31,9 +31,7 @@ class TokenManager {
       final savedAccessToken = prefs.getString(_accessTokenKey);
       final savedRefreshToken = prefs.getString(_refreshTokenKey);
       
-      print('DEBUG: Tokens saved successfully');
     } catch (e) {
-      print('DEBUG: Error saving tokens: $e');
       throw Exception('فشل في حفظ بيانات الجلسة');
     }
   }
@@ -50,9 +48,7 @@ class TokenManager {
       // التحقق من أن التوكن تم حفظه بنجاح
       final savedAccessToken = prefs.getString(_accessTokenKey);
       
-      print('DEBUG: Access token saved successfully');
     } catch (e) {
-      print('DEBUG: Error saving access token: $e');
     }
   }
 
@@ -129,9 +125,7 @@ class TokenManager {
       final savedRefreshToken = prefs.getString(_refreshTokenKey);
       final savedUsername = prefs.getString(_usernameKey);
       
-      print('DEBUG: All tokens cleared successfully');
     } catch (e) {
-      print('DEBUG: Error clearing tokens: $e');
     }
   }
 
@@ -141,7 +135,6 @@ class TokenManager {
     try {
       await prefs.remove(tokenKey);
     } catch (e) {
-      print('DEBUG: Error clearing token $tokenKey: $e');
     }
   }
 } 

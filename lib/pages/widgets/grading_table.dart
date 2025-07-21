@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +7,10 @@ import '../../providers/teacher_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/pdf_provider.dart';
 import 'suggestion_styles.dart';
+import 'unified_grading_table.dart';
+import 'examiner_grading_table.dart';
+import 'examiner_grade_item.dart';
+import '../../providers/admin_teacher_provider.dart';
 
 class GradingTable extends StatefulWidget {
   final ProjectDetail? project;
@@ -24,44 +27,57 @@ class _GradingTableState extends State<GradingTable> {
   bool isLoadingStudents = true;
 
   // Examiner grading state
-  final List<_ExaminerGradeItem> examinerGradeItems = [
+  final List<ExaminerGradeItem> examinerGradeItems = [
     // العرض والسمنار
-    _ExaminerGradeItem('الالتزام بمواعيد الإنجاز', 20),
-    _ExaminerGradeItem('المساهمة والمشاركة في النقاش', 20),
-    _ExaminerGradeItem('مهارات الإلقاء', 30),
-    _ExaminerGradeItem('العرض والتسلسل المنطقي', 20),
-    _ExaminerGradeItem('استخدام الأدوات', 10),
+    ExaminerGradeItem('الالتزام بمواعيد الإنجاز', 20),
+    ExaminerGradeItem('المساهمة والمشاركة والتفاعل', 20),
+    ExaminerGradeItem('مهارات الإلقاء', 30),
+    ExaminerGradeItem('الوضوح والتسلسل المنطقي', 30),
+    ExaminerGradeItem('استخدام الأدوات', 20),
+    ExaminerGradeItem('الإجابة على الأسئلة', 20),
     // فهم المشروع
-    _ExaminerGradeItem('الإلمام بالمشكلة ودراسة الحالة', 20),
-    _ExaminerGradeItem('مجال وحدود المشروع', 20),
-    _ExaminerGradeItem('الأهداف والمزايا والفوائد', 20),
-    _ExaminerGradeItem('الأسلوب (Methodology)', 20),
-    _ExaminerGradeItem('الإجابة على الأسئلة', 20),
+    ExaminerGradeItem('المشكلة المراد حلها', 20),
+    ExaminerGradeItem('الإلمام بالمشكلة ودراسة الحالة', 20),
+    ExaminerGradeItem('مجال وحدود المشروع', 20),
+    ExaminerGradeItem('الأهداف والمزايا والفوائد', 20),
+    ExaminerGradeItem('الأسلوب (Methodology)', 20),
     // تصميم المشروع
-    _ExaminerGradeItem('التصميم الهيكلي (Architecture)', 30),
-    _ExaminerGradeItem('تصميم الواجهات (Interfaces)', 30),
-    _ExaminerGradeItem('تصميم قواعد البيانات (Persistence)', 30),
-    _ExaminerGradeItem('تصميم الخوارزميات (Algorithms)', 30),
-    _ExaminerGradeItem('الأمن والسلامة (Safety & Security)', 30),
+    ExaminerGradeItem('التصميم الهيكلي (Architecture)', 30),
+    ExaminerGradeItem('تصميم الواجهات (Interfaces)', 30),
+    ExaminerGradeItem('تصميم قواعد البيانات (Persistence)', 30),
+    ExaminerGradeItem('تصميم الخوارزميات (Algorithms)', 30),
+    ExaminerGradeItem('الأمن والسلامة (Safety & Security)', 30),
     // التقرير
-    _ExaminerGradeItem('الشكل', 20),
-    _ExaminerGradeItem('الكمال', 20),
-    _ExaminerGradeItem('الجودة', 20),
-    _ExaminerGradeItem('استخدام الجيد للأدوات', 20),
-    _ExaminerGradeItem('اللغة العربية', 20),
+    ExaminerGradeItem('الشكل', 20),
+    ExaminerGradeItem('الكمال', 20),
+    ExaminerGradeItem('الجودة', 20),
+    ExaminerGradeItem('استخدام الجيد للأدوات', 20),
+    ExaminerGradeItem('اللغة العربية', 20),
   ];
 
   // Add refresh method
   Future<void> _refreshGradingStatus() async {
     final teacherProvider = context.read<TeacherProvider>();
     if (widget.project != null) {
-      await teacherProvider.refreshCurrentProject();
-      final students = await teacherProvider.loadFilteredStudentForProject(widget.project!.id);
       setState(() {
-        projectStudents = students;
-        if (students.isNotEmpty) selectedStudent = students.first;
-        isLoadingStudents = false;
+        isLoadingStudents = true;
       });
+      try {
+        final students = await teacherProvider
+            .loadFilteredStudentForProject(widget.project!.id);
+        setState(() {
+          projectStudents = students;
+          if (students.isNotEmpty) selectedStudent = students.first;
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تحديث قائمة الطلاب: $e')),
+        );
+      } finally {
+        setState(() {
+          isLoadingStudents = false;
+        });
+      }
     }
   }
 
@@ -91,13 +107,45 @@ class _GradingTableState extends State<GradingTable> {
   @override
   Widget build(BuildContext context) {
     final teacherProvider = context.read<TeacherProvider>();
-    final userProvider = context.read<UserProvider>();
-    final currentTeacherId = teacherProvider.teacher?.id;
-    final isSupervisor = widget.project?.teacher?.id == currentTeacherId;
+    final project = widget.project;
     return Consumer<PdfProvider>(builder: (context, provider, _) {
       final isExaminer = provider.isExaminer;
+      final isSupervisor =
+          widget.project?.teacher == teacherProvider.teacher?.id;
       if (isSupervisor) {
-        // Supervisor grading table (current UI)
+        if (project?.supervisorScore != null) {
+          return Center(
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              margin: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                border: Border.all(
+                  color: Colors.green,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(kCardRadius),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'تم التقييم بالفعل',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[800],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                      'درجة المشرف: ${project!.supervisorRaw?.toStringAsFixed(2) ?? "-"} من 40'),
+                ],
+              ),
+            ),
+          );
+        }
+        // Unified grading table UI for supervisor (teacher)
         return Card(
           elevation: 4,
           margin: const EdgeInsets.all(24),
@@ -138,12 +186,16 @@ class _GradingTableState extends State<GradingTable> {
                               filled: true,
                               fillColor: Colors.white,
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(kCardRadius),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderRadius:
+                                    BorderRadius.circular(kCardRadius),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(kCardRadius),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderRadius:
+                                    BorderRadius.circular(kCardRadius),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                   vertical: 18, horizontal: 20),
@@ -187,193 +239,83 @@ class _GradingTableState extends State<GradingTable> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    provider.isExaminer
-                        ? TextFormField(
-                            initialValue: provider.examinerCollegeScore,
+                    // Supervisor-specific fields (outside the table)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: provider.coordinatorScore,
                             onChanged: (val) =>
-                                provider.setExaminerCollegeScore(val),
+                                provider.setCoordinatorScore(val),
                             decoration: InputDecoration(
-                              labelText: 'درجة الكلية (من 25)',
+                              labelText: 'درجة منسق المشاريع (من 5)',
                               filled: true,
                               fillColor: Colors.white,
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(kCardRadius),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderRadius:
+                                    BorderRadius.circular(kCardRadius),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(kCardRadius),
-                                borderSide: BorderSide(color: Colors.grey.shade300),
+                                borderRadius:
+                                    BorderRadius.circular(kCardRadius),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                   vertical: 18, horizontal: 20),
                             ),
                             keyboardType: TextInputType.number,
-                          )
-                        : Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  initialValue: provider.coordinatorScore,
-                                  onChanged: (val) =>
-                                      provider.setCoordinatorScore(val),
-                                  decoration: InputDecoration(
-                                    labelText: 'درجة منسق المشاريع (من 5)',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(kCardRadius),
-                                      borderSide:
-                                          BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(kCardRadius),
-                                      borderSide:
-                                          BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 18, horizontal: 20),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextFormField(
-                                  initialValue: provider.headScore,
-                                  onChanged: (val) =>
-                                      provider.setHeadScore(val),
-                                  decoration: InputDecoration(
-                                    labelText: 'درجة رئيس القسم (من 5)',
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(kCardRadius),
-                                      borderSide:
-                                          BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius:
-                                          BorderRadius.circular(kCardRadius),
-                                      borderSide:
-                                          BorderSide(color: Colors.grey.shade300),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 18, horizontal: 20),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                            ],
                           ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            initialValue: provider.headScore,
+                            onChanged: (val) => provider.setHeadScore(val),
+                            decoration: InputDecoration(
+                              labelText: 'درجة رئيس القسم (من 5)',
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(kCardRadius),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius:
+                                    BorderRadius.circular(kCardRadius),
+                                borderSide:
+                                    BorderSide(color: Colors.grey.shade300),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 18, horizontal: 20),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 20),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: NeverScrollableScrollPhysics(),
-                      itemCount: provider.currentEvaluationItems.length,
-                      itemBuilder: (context, index) {
-                        final item = provider.currentEvaluationItems[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: index % 2 == 0
-                                ? Colors.white
-                                : Colors.grey[100],
-                            borderRadius: BorderRadius.circular(kCardRadius),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
-                                blurRadius: 2,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 3,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(item.detail,
-                                      style: kBodyTextStyle),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(item.maxScore.toString(),
-                                      style: kBodyTextStyle),
-                                ),
-                              ),
-                              SizedBox(
-                                width: 56, // Enough for 3 characters
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: TextFormField(
-                                    initialValue: provider.scores[index],
-                                    onChanged: (val) => provider.setScore(index, val),
-                                    decoration: InputDecoration(
-                                      hintText: 'الدرجة',
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(kCardRadius),
-                                        borderSide: BorderSide(color: Colors.grey.shade300),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(kCardRadius),
-                                        borderSide: BorderSide(color: Colors.grey.shade300),
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        vertical: 18, horizontal: 10), // Reduced padding
-                                    ),
-                                    keyboardType: TextInputType.number,
-                                    textAlign: TextAlign.center,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                      LengthLimitingTextInputFormatter(2),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: TextFormField(
-                                    initialValue: provider.notes[index],
-                                    onChanged: (val) =>
-                                        provider.setNote(index, val),
-                                    decoration: InputDecoration(
-                                      hintText: 'ملاحظات',
-                                      filled: true,
-                                      fillColor: Colors.white,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            kCardRadius),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey.shade300),
-                                      ),
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            kCardRadius),
-                                        borderSide: BorderSide(
-                                            color: Colors.grey.shade300),
-                                      ),
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                              vertical: 18, horizontal: 20),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                    // Unified grading table
+                    UnifiedGradingTable(
+                      provider: provider,
+                      totalScore: provider.currentEvaluationItems
+                          .asMap()
+                          .entries
+                          .fold(
+                              0,
+                              (sum, entry) =>
+                                  sum +
+                                  (int.tryParse(provider.scores[entry.key]) ??
+                                      0)),
+                      onScoreChanged: (index, val) =>
+                          provider.setScore(index, val),
+                      onNoteChanged: (index, val) =>
+                          provider.setNote(index, val),
+                      shouldFocusEmpty: true,
                     ),
                     const SizedBox(height: 20),
                     Consumer<TeacherProvider>(
@@ -469,19 +411,6 @@ class _GradingTableState extends State<GradingTable> {
                                       teacherProvider.currentProject != null) {
                                     project = teacherProvider.currentProject;
                                     projectId = project?.id ?? 0;
-                                    if (teacherProvider
-                                                .currentProject!.teacher !=
-                                            null &&
-                                        teacherProvider.currentProject!.teacher!
-                                                .user !=
-                                            null) {
-                                      supervisorUsername = teacherProvider
-                                              .currentProject!
-                                              .teacher!
-                                              .user
-                                              .username ??
-                                          '';
-                                    }
                                   }
                                   if (teacherProvider != null &&
                                       teacherProvider.teacher != null) {
@@ -495,7 +424,7 @@ class _GradingTableState extends State<GradingTable> {
                                   final evalType = evaluationType;
                                   String? pdfUrl;
                                   if (project != null && teacherId != null) {
-                                    if (project.teacher?.id == teacherId) {
+                                    if (project.teacher == teacherId) {
                                       double supervisorRaw = provider.scores
                                           .fold(
                                               0,
@@ -509,7 +438,8 @@ class _GradingTableState extends State<GradingTable> {
                                               provider.coordinatorScore) ??
                                           0;
                                       List<String> allStudentNames = projectStudents
-                                          .map((s) => '${s.user.firstName} ${s.user.lastName}')
+                                          .map((s) =>
+                                              '${s.user.firstName} ${s.user.lastName}')
                                           .toList();
                                       pdfUrl = await provider
                                           .uploadSupervisorPdfAndScores(
@@ -533,7 +463,8 @@ class _GradingTableState extends State<GradingTable> {
                                                   prev + (int.tryParse(s) ?? 0))
                                           .toDouble();
                                       List<String> allStudentNames = projectStudents
-                                          .map((s) => '${s.user.firstName} ${s.user.lastName}')
+                                          .map((s) =>
+                                              '${s.user.firstName} ${s.user.lastName}')
                                           .toList();
                                       pdfUrl = await provider
                                           .uploadExaminer1PdfAndScore(
@@ -555,7 +486,8 @@ class _GradingTableState extends State<GradingTable> {
                                                   prev + (int.tryParse(s) ?? 0))
                                           .toDouble();
                                       List<String> allStudentNames = projectStudents
-                                          .map((s) => '${s.user.firstName} ${s.user.lastName}')
+                                          .map((s) =>
+                                              '${s.user.firstName} ${s.user.lastName}')
                                           .toList();
                                       pdfUrl = await provider
                                           .uploadExaminer2PdfAndScore(
@@ -614,6 +546,50 @@ class _GradingTableState extends State<GradingTable> {
           ),
         );
       } else if (isExaminer) {
+        // Examiner: If already graded, show message and hide table
+        final examiner1Score = project?.examiner1Score;
+        final examiner2Score = project?.examiner2Score;
+        if (examiner1Score != null && examiner2Score != null) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min, 
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16.0),
+                  margin: const EdgeInsets.all(8.0),
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    border: Border.all(
+                      color: Colors.green,
+                      width: 2,
+                    ),
+                    borderRadius: BorderRadius.circular(kCardRadius),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'تم التقييم بالفعل',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[800],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                          'درجة ممتحن 1:  ${project!.examiner1Raw?.toStringAsFixed(2) ?? "-"} من 25'),
+                      Text(
+                          'درجة ممتحن 2: ${project!.examiner2Raw?.toStringAsFixed(2) ?? "-"} من 25'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
         // Examiner grading table (based on the image)
         return Card(
           elevation: 4,
@@ -626,91 +602,158 @@ class _GradingTableState extends State<GradingTable> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('جدول تقييم الممتحن', style: kBodyTextStyle.copyWith(fontWeight: FontWeight.bold, fontSize: 20)),
+                Text('جدول تقييم الممتحن',
+                    style: kBodyTextStyle.copyWith(
+                        fontWeight: FontWeight.bold, fontSize: 20)),
                 const SizedBox(height: 20),
-                _buildExaminerGradingTable(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: ExaminerGradingTable(
+                      examinerGradeItems: examinerGradeItems,
+                      totalScore: examinerGradeItems.fold(
+                          0,
+                          (sum, item) =>
+                              sum +
+                              (int.tryParse(item.scoreController.text) ?? 0)),
+                      onScoreChanged: () => setState(() {}),
+                      shouldFocusEmpty: true,
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () async {
-                    // Examiner save logic
-                    int totalScore = examinerGradeItems.fold(0, (sum, item) => sum + (int.tryParse(item.scoreController.text) ?? 0));
-                    if (totalScore > 500) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('المجموع لا يجب أن يتجاوز 500')),
-                      );
-                      return;
-                    }
-                    final teacherProvider = context.read<TeacherProvider?>();
-                    final userProvider = context.read<UserProvider?>();
-                    String supervisorUsername = '';
-                    int projectId = 0;
-                    ProjectDetail? project;
-                    int? teacherId;
-                    if (teacherProvider != null && teacherProvider.currentProject != null) {
-                      project = teacherProvider.currentProject;
-                      projectId = project?.id ?? 0;
-                      if (teacherProvider.currentProject!.teacher != null &&
-                          teacherProvider.currentProject!.teacher!.user != null) {
-                        supervisorUsername = teacherProvider.currentProject!.teacher!.user.username ?? '';
-                      }
-                    }
-                    if (teacherProvider != null && teacherProvider.teacher != null) {
-                      teacherId = teacherProvider.teacher!.id;
-                    }
-                    String studentName = selectedStudent != null
-                        ? '${selectedStudent!.user.firstName} ${selectedStudent!.user.lastName}'
-                        : '';
-                    String projectTitle = projectTitleController.text;
-                    final evalType = evaluationType;
-                    String? pdfUrl;
-                    if (project != null && teacherId != null) {
-                      // Examiner logic: use the new scores
-                      double rawScore = examinerGradeItems.fold(0, (prev, item) => prev + (int.tryParse(item.scoreController.text) ?? 0)).toDouble();
-                      List<String> allStudentNames = projectStudents.map((s) => '${s.user.firstName} ${s.user.lastName}').toList();
-                      if (project.examiner1Raw == null) {
-                        pdfUrl = await provider.uploadExaminer1PdfAndScore(
-                          pdfBytes: await provider.generatePdf(
-                            supervisorUsername: supervisorUsername,
-                            studentNames: allStudentNames,
-                            projectTitle: projectTitle,
-                            evaluationType: evalType,
-                            // Optionally pass examiner notes if needed
-                          ),
-                          rawScore: rawScore,
-                          project: project,
-                        );
-                      } else if (project.examiner2Raw == null) {
-                        pdfUrl = await provider.uploadExaminer2PdfAndScore(
-                          pdfBytes: await provider.generatePdf(
-                            supervisorUsername: supervisorUsername,
-                            studentNames: allStudentNames,
-                            projectTitle: projectTitle,
-                            evaluationType: evalType,
-                            // Optionally pass examiner notes if needed
-                          ),
-                          rawScore: rawScore,
-                          project: project,
-                        );
-                      } else {
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      // Examiner save logic
+                      final firstEmptyExaminerIndex =
+                          examinerGradeItems.indexWhere((item) =>
+                              item.scoreController.text.trim().isEmpty);
+                      if (firstEmptyExaminerIndex != -1) {
+                        examinerGradeItems[firstEmptyExaminerIndex]
+                                .scoreController
+                                .selection =
+                            TextSelection(
+                                baseOffset: 0,
+                                extentOffset:
+                                    examinerGradeItems[firstEmptyExaminerIndex]
+                                        .scoreController
+                                        .text
+                                        .length);
+                        examinerGradeItems[firstEmptyExaminerIndex]
+                            .scoreController
+                            .notifyListeners();
+                        FocusScope.of(context).requestFocus(FocusNode());
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('تم تقييم هذا المشروع بالفعل أو لا يمكنك التقييم')),
+                          const SnackBar(
+                              content:
+                                  Text('يرجى تعبئة جميع الدرجات قبل الحفظ')),
                         );
                         return;
                       }
-                    }
-                    if (pdfUrl != null && pdfUrl.isNotEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم رفع الملف بنجاح!\nرابط التحميل: $pdfUrl')),
-                      );
-                    } else if (pdfUrl == null) {
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('فشل رفع الملف!')),
-                      );
-                    }
-                  },
-                  style: kButtonStyle,
-                  child: const Text('حفظ النتيجة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white, fontFamily: 'Tajawal')),
+                      int totalScore = examinerGradeItems.fold(
+                          0,
+                          (sum, item) =>
+                              sum +
+                              (int.tryParse(item.scoreController.text) ?? 0));
+                      if (totalScore > 500) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('المجموع لا يجب أن يتجاوز 500')),
+                        );
+                        return;
+                      }
+                      final teacherProvider = context.read<TeacherProvider?>();
+                      final userProvider = context.read<UserProvider?>();
+                      String supervisorUsername = '';
+                      int projectId = 0;
+                      ProjectDetail? project;
+                      int? teacherId;
+                      if (teacherProvider != null &&
+                          teacherProvider.currentProject != null) {
+                        project = teacherProvider.currentProject;
+                        projectId = project?.id ?? 0;
+                      }
+                      if (teacherProvider != null &&
+                          teacherProvider.teacher != null) {
+                        teacherId = teacherProvider.teacher!.id;
+                      }
+                      String studentName = selectedStudent != null
+                          ? '${selectedStudent!.user.firstName} ${selectedStudent!.user.lastName}'
+                          : '';
+                      String projectTitle = projectTitleController.text;
+                      final evalType = evaluationType;
+                      String? pdfUrl;
+                      if (project != null && teacherId != null) {
+                        // Examiner logic: use the new scores
+                        double rawScore = examinerGradeItems
+                            .fold(
+                                0,
+                                (prev, item) =>
+                                    prev +
+                                    (int.tryParse(item.scoreController.text) ??
+                                        0))
+                            .toDouble();
+                        List<String> allStudentNames = projectStudents
+                            .map(
+                                (s) => '${s.user.firstName} ${s.user.lastName}')
+                            .toList();
+                        if (project.examiner1Raw == null) {
+                          pdfUrl = await provider.uploadExaminer1PdfAndScore(
+                            pdfBytes: await provider.generatePdf(
+                              supervisorUsername: supervisorUsername,
+                              studentNames: allStudentNames,
+                              projectTitle: projectTitle,
+                              evaluationType: evalType,
+                              // Optionally pass examiner notes if needed
+                            ),
+                            rawScore: rawScore,
+                            project: project,
+                          );
+                        } else if (project.examiner2Raw == null) {
+                          pdfUrl = await provider.uploadExaminer2PdfAndScore(
+                            pdfBytes: await provider.generatePdf(
+                              supervisorUsername: supervisorUsername,
+                              studentNames: allStudentNames,
+                              projectTitle: projectTitle,
+                              evaluationType: evalType,
+                              // Optionally pass examiner notes if needed
+                            ),
+                            rawScore: rawScore,
+                            project: project,
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'تم تقييم هذا المشروع بالفعل أو لا يمكنك التقييم')),
+                          );
+                          return;
+                        }
+                        setState(() {});
+                      }
+                      if (pdfUrl != null && pdfUrl.isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(
+                                  'تم رفع الملف بنجاح!\nرابط التحميل: $pdfUrl')),
+                        );
+                      } else if (pdfUrl == null) {
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('فشل رفع الملف!')),
+                        );
+                      }
+                    },
+                    style: kButtonStyle,
+                    child: const Text('حفظ النتيجة',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                            color: Colors.white,
+                            fontFamily: 'Tajawal')),
+                  ),
                 ),
               ],
             ),
@@ -724,101 +767,4 @@ class _GradingTableState extends State<GradingTable> {
       }
     });
   }
-
-  // Stub for examiner grading table UI
-  Widget _buildExaminerGradingTable() {
-    int totalScore = examinerGradeItems.fold(0, (sum, item) => sum + (int.tryParse(item.scoreController.text) ?? 0));
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Table(
-          border: TableBorder.all(color: Colors.grey.shade300),
-          columnWidths: const {
-            0: FlexColumnWidth(3),
-            1: FlexColumnWidth(1),
-            2: FlexColumnWidth(1),
-            3: FlexColumnWidth(2),
-          },
-          children: [
-            TableRow(
-              decoration: BoxDecoration(color: Colors.grey[200]),
-              children: const [
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text('البند', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text('الدرجة القصوى', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text('الدرجة', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text('ملاحظات', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ],
-            ),
-            ...examinerGradeItems.map((item) => TableRow(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(item.title, textAlign: TextAlign.right),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(item.maxScore.toString(), textAlign: TextAlign.center),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: item.scoreController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      hintText: 'الدرجة',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    controller: item.noteController,
-                    decoration: const InputDecoration(
-                      hintText: 'ملاحظات',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                    ),
-                  ),
-                ),
-              ],
-            )),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('المجموع: ', style: kBodyTextStyle.copyWith(fontWeight: FontWeight.bold)),
-            Text('$totalScore / 500', style: kBodyTextStyle.copyWith(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ],
-    );
-  }
 }
-
-// Helper class for examiner grading items
-class _ExaminerGradeItem {
-  final String title;
-  final int maxScore;
-  final TextEditingController scoreController = TextEditingController();
-  final TextEditingController noteController = TextEditingController();
-  _ExaminerGradeItem(this.title, this.maxScore);
-} 

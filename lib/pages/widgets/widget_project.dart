@@ -7,6 +7,7 @@ import '../../models/student_details_list.dart';
 import '../../providers/chat_provider.dart';
 import '../admin_students_page.dart';
 import 'student_list_item.dart';
+import '../../providers/admin_teacher_provider.dart';
 
 class ProjectWidget extends StatelessWidget {
   final String title;
@@ -122,7 +123,18 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                       height: 97,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(32.0),
-                        child: Image.asset("assets/pdfImage.png"),
+                        child: Image.asset(
+                          "assets/pdfImage.png",
+                          errorBuilder: (context, error, stackTrace) {
+                            return Image.asset(
+                              "assets/missing_image_icon.png",
+                              fit: BoxFit.contain,
+                              height: 97,
+                            );
+                          },
+                          fit: BoxFit.cover,
+                          height: 97,
+                        ),
                       )),
                 ),
                 Expanded(
@@ -247,7 +259,7 @@ class _ProjectMoreDetailsState extends State<ProjectMoreDetails> {
                         children: [
                           widget.project.teacher != null
                               ? Text(
-                                  " المشرف: ${widget.project.teacher!.user.firstName} ${widget.project.teacher?.user.lastName}",
+                                  " المشرف: ${Provider.of<AdminTeacherProvider>(context, listen: false).getTeacherById(widget.project.teacher)?.user.firstName ?? ''} ${Provider.of<AdminTeacherProvider>(context, listen: false).getTeacherById(widget.project.teacher)?.user.lastName ?? ''}",
                                   style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600),

@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'gradpro-64eee.firebasestorage.app',
     measurementId: 'G-WRSVSVT2X2',
   );
+
 }

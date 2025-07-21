@@ -152,7 +152,7 @@ class SettingsPage extends StatelessWidget {
                                 print('DEBUG: Logout completed, navigating to login');
                                 Navigator.pushReplacementNamed(context, '/');
                               },
-                              child: const Text("تسجيل الخروج")),
+                              child: const Text("تسجيل الخروج", style: TextStyle(color: Color(0xff00577B)))),
                         ],
                       ),
                     ],

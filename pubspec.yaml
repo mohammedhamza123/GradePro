@@ -111,6 +111,7 @@ flutter:
     - assets/ama.png
     - assets/dd.png
     - assets/icons/qqpp.PNG
+    - assets/missing_image_icon.png
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 

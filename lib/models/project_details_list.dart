@@ -34,7 +34,7 @@ class ProjectDetail {
     this.mainSuggestion,
     required this.image,
     this.deliveryDate,
-    required this.teacher,
+    required this.teacher, // now int?
     required this.progression,
     required this.id,
     required this.title,
@@ -49,7 +49,7 @@ class ProjectDetail {
   Suggestion? mainSuggestion;
   String image;
   DateTime? deliveryDate;
-  TeacherDetail? teacher;
+  int? teacher; // changed from TeacherDetail? to int?
   double progression;
   int id;
   String title;
@@ -68,9 +68,7 @@ class ProjectDetail {
         deliveryDate: json["delivery_date"] == null
             ? null
             : DateTime.parse(json["delivery_date"]),
-        teacher: json["teacher"] == null
-            ? null
-            : TeacherDetail.fromJson(json["teacher"]),
+        teacher: json["teacher"], // just assign the int
         progression: json["progression"]?.toDouble(),
         id: json["id"],
         title: json["title"],
@@ -87,7 +85,7 @@ class ProjectDetail {
         "image": image,
         "delivery_date":
             deliveryDate != null ? "${deliveryDate!.year.toString().padLeft(4, '0')}-${deliveryDate!.month.toString().padLeft(2, '0')}-${deliveryDate!.day.toString().padLeft(2, '0')}" : null,
-        "teacher": teacher?.toJson(),
+        "teacher": teacher, // just output the int
         "progression": progression,
         "id": id,
         "title": title,

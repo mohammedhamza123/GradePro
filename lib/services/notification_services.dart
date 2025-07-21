@@ -120,7 +120,7 @@ class NotificationService {
       // تحديث وقت آخر فحص
       await prefs.setString(_lastCheckKey, currentTime);
     } catch (e) {
-      print('Error checking for new notifications: $e');
+      // print('Error checking for new notifications: $e');
     }
   }
   
@@ -170,7 +170,7 @@ class NotificationService {
         'student_data': null,
       };
     } catch (e) {
-      print('Error checking student status: $e');
+      // print('Error checking student status: $e');
       return {
         'exists': false,
         'approved': false,
@@ -213,7 +213,7 @@ class NotificationService {
       }
       return [];
     } catch (e) {
-      print('Error getting pending students: $e');
+      // print('Error getting pending students: $e');
       return [];
     }
   }
@@ -234,7 +234,7 @@ class NotificationService {
       }
       return [];
     } catch (e) {
-      print('Error getting pending projects: $e');
+      // print('Error getting pending projects: $e');
       return [];
     }
   }
@@ -248,7 +248,7 @@ class NotificationService {
       
       return response.statusCode == 200;
     } catch (e) {
-      print('Error approving student: $e');
+      // print('Error approving student: $e');
       return false;
     }
   }
@@ -263,7 +263,7 @@ class NotificationService {
       
       return response.statusCode == 200;
     } catch (e) {
-      print('Error rejecting student: $e');
+      // print('Error rejecting student: $e');
       return false;
     }
   }
@@ -277,7 +277,7 @@ class NotificationService {
       
       return response.statusCode == 200;
     } catch (e) {
-      print('Error approving project: $e');
+      // print('Error approving project: $e');
       return false;
     }
   }
@@ -292,7 +292,7 @@ class NotificationService {
       
       return response.statusCode == 200;
     } catch (e) {
-      print('Error rejecting project: $e');
+      // print('Error rejecting project: $e');
       return false;
     }
   }
@@ -306,7 +306,7 @@ class NotificationService {
         'type': 'student_approval',
       });
     } catch (e) {
-      print('Error sending student approval notification: $e');
+      // print('Error sending student approval notification: $e');
     }
   }
   
@@ -319,7 +319,7 @@ class NotificationService {
         'reason': reason,
       });
     } catch (e) {
-      print('Error sending student rejection notification: $e');
+      // print('Error sending student rejection notification: $e');
     }
   }
   
@@ -331,7 +331,7 @@ class NotificationService {
         'type': 'project_approval',
       });
     } catch (e) {
-      print('Error sending project approval notification: $e');
+      // print('Error sending project approval notification: $e');
     }
   }
   
@@ -344,7 +344,7 @@ class NotificationService {
         'reason': reason,
       });
     } catch (e) {
-      print('Error sending project rejection notification: $e');
+      // print('Error sending project rejection notification: $e');
     }
   }
   

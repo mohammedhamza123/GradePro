@@ -28,18 +28,21 @@ class Teacher {
         required this.id,
         required this.user,
         required this.isExaminer,
+        this.examinedProjects = const [],
     });
 
     int phoneNumber;
     int id;
     int user;
     bool isExaminer;
+    List<int> examinedProjects;
 
     factory Teacher.fromJson(Map<dynamic, dynamic> json) => Teacher(
         phoneNumber: json["phoneNumber"],
         id: json["id"],
         user: json["user"],
         isExaminer: json["isExaminer"],
+        examinedProjects: json["examined_projects"] != null ? List<int>.from(json["examined_projects"]) : [],
     );
 
     Map<dynamic, dynamic> toJson() => {
@@ -47,5 +50,6 @@ class Teacher {
         "id": id,
         "user": user,
         "isExaminer": isExaminer,
+        "examined_projects": examinedProjects,
     };
 }

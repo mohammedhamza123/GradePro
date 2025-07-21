@@ -91,7 +91,17 @@ class TeacherDetails extends StatelessWidget {
                                       child: Image.asset(
                                           provider.selectedSuggestion != null
                                               ? "assets/pdfImage.png"
-                                              : "assets/incomplete.png")
+                                              : "assets/incomplete.png",
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Image.asset(
+                                              "assets/missing_image_icon.png",
+                                              fit: BoxFit.contain,
+                                              height: 165,
+                                            );
+                                          },
+                                          fit: BoxFit.cover,
+                                          height: 165,
+                                      ),
                                       // Image.network(
                                       //     provider.selectedSuggestion != null
                                       //         ? provider.selectedSuggestion!.image

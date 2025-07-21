@@ -53,6 +53,13 @@ class TeacherProvider extends ChangeNotifier {
 
   List<ProjectDetail> get projectList => _projectList;
 
+  List<ProjectDetail> get examinedProjectDetails {
+    if (teacher != null && teacher!.examinedProjects.isNotEmpty && _projectList.isNotEmpty) {
+      return _projectList.where((project) => teacher!.examinedProjects.contains(project.id)).toList();
+    }
+    return [];
+  }
+
   Future<List<ImportantDate>> get importantDates => _loadImportantDates();
 
   Future<List<Suggestion>> get suggestionList => _loadSuggestions();
@@ -78,6 +85,11 @@ class TeacherProvider extends ChangeNotifier {
     final user = await _userService.user;
     if (user != null) {
       _teacher = await getTeacher(user.id);
+      print('Loaded teacher: id=${_teacher?.id}');
+      print('Teacher object: $_teacher');
+      print('teacher.id: ${_teacher?.id}');
+      print('teacher.isExaminer: ${_teacher?.isExaminer}');
+      print('teacher.examinedProjects: ${_teacher?.examinedProjects}');
       return true;
     }
     return false;
@@ -88,29 +100,26 @@ class TeacherProvider extends ChangeNotifier {
     if (!services.isAuthorized()) {
       return false;
     }
-    
+
     try {
       final data = await getProjectDetailsList();
       _projectList = data.datum;
+      print('Loaded _projectList with  [36m [1m [0m [39m projects');
+      for (var p in _projectList) {
+        print('Project: id= [36m [1m [0m [39m, title= [36m [1m [0m [39m');
+      }
       notifyListeners();
       return true;
     } catch (e) {
+      print('Error loading projects: $e');
       return false;
     }
   }
 
   List<ProjectDetail> setTeacherProjects() {
     if (_projectList.isNotEmpty && teacher != null) {
-      if (teacher!.isExaminer) {
-        // إذا كان ممتحن، أظهر المشاريع التي هو ممتحن لها
-        return _projectList.where((element) =>
-          (element.examiner1Raw != null && element.teacher?.id == teacher!.id) ||
-          (element.examiner2Raw != null && element.teacher?.id == teacher!.id)
-        ).toList();
-      } else {
-        // إذا كان مشرف، أظهر المشاريع التي هو مشرف عليها
-        return _projectList.where((element) => element.teacher?.id == teacher!.id).toList();
-      }
+      // Only show projects where the teacher is the supervisor
+      return _projectList.where((element) => element.teacher == teacher!.id).toList();
     } else {
       return [];
     }
@@ -126,20 +135,10 @@ class TeacherProvider extends ChangeNotifier {
     try {
       final data = await getStudentDetailsList();
       _studentList = data.studentDetails;
-      // Debug print: all loaded students
-      print('Loaded students:');
-      for (var s in _studentList) {
-        print('Student id: ${s.id}, project: ${s.project}, name: ${s.user.firstName}');
-      }
     } catch (e) {
       return [];
     }
     final filtered = _studentList.where((e) => e.project == projectId).toList();
-    // Debug print: filtered students
-    print('Filtered students for project $projectId:');
-    for (var s in filtered) {
-      print('Student id: ${s.id}, project: ${s.project}, name: ${s.user.firstName}');
-    }
     return filtered;
   }
 
@@ -261,23 +260,5 @@ class TeacherProvider extends ChangeNotifier {
   Future<void> editRequirement(int id, Requirement requirement) async {
     await patchRequirement(id, requirement.name, requirement.status, null);
     await refreshRequirements();
-  }
-
-  // Add this method to refresh the current project details
-  Future<void> refreshCurrentProject() async {
-    if (_currentProject != null) {
-      try {
-        // Assuming getProjectDetailsList() returns all projects, so we find the one with the same id
-        final allProjects = await getProjectDetailsList();
-        final updated = allProjects.datum.firstWhere(
-          (p) => p.id == _currentProject!.id,
-          orElse: () => _currentProject!,
-        );
-        _currentProject = updated;
-        notifyListeners();
-      } catch (e) {
-        // Handle error if needed
-      }
-    }
   }
 }

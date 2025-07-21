@@ -42,7 +42,18 @@ class Suggestion extends StatelessWidget {
                   height: 97,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(32.0),
-                    child: Image.network(image),
+                    child: Image.network(
+                      image,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          "assets/missing_image_icon.png",
+                          fit: BoxFit.contain,
+                          height: 97,
+                        );
+                      },
+                      fit: BoxFit.cover,
+                      height: 97,
+                    ),
                   )),
               Expanded(
                 child: Column(

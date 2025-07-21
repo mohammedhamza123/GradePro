@@ -80,7 +80,8 @@ class MyApp extends StatelessWidget {
         title: 'Gradify',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primarySwatch: Colors.blue,
+          primarySwatch: Colors.blueGrey,
+          scaffoldBackgroundColor: const Color(0xfff5f6fa),
           fontFamily: 'Tajawal',
         ),
         initialRoute: '/',

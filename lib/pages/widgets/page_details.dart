@@ -55,7 +55,17 @@ class StudentDetails extends StatelessWidget {
                                         child: Image.network(
                                             snapshot.data != null
                                                 ? snapshot.data!.image
-                                                : ""),
+                                                : "",
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Image.asset(
+                                                "assets/missing_image_icon.png",
+                                                fit: BoxFit.contain,
+                                                height: 165,
+                                              );
+                                            },
+                                            fit: BoxFit.cover,
+                                            height: 165,
+                                        ),
                                       )),
                                   IconButton(
                                     onPressed: () {},
@@ -190,27 +200,48 @@ class StudentDetails extends StatelessWidget {
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  ListView(
-                                    children: List.generate(
-                                        provider.requirementList.length,
-                                        (index) {
-                                      final item =
-                                          provider.requirementList[index];
-                                      return RequirementWidget(
-                                        title: item.name,
-                                        onDelete: () {
-                                          provider.deleteRequirement(index);
-                                        },
-                                        onEdit: () {
-                                          showEditRequirementDialog(context,
-                                              (id, requirement) {
-                                            provider.editRequirement(
-                                                id, requirement);
-                                          }, item.id);
-                                        },
-                                        status: item.status,
-                                      );
-                                    }),
+                                  RefreshIndicator(
+                                    onRefresh: () async {
+                                      // Reload requirements when pulled
+                                      await Provider.of<StudentProvider>(context, listen: false).onItemTapped(1);
+                                    },
+                                    child: provider.requirementList.isEmpty
+                                        ? ListView(
+                                            physics: const AlwaysScrollableScrollPhysics(),
+                                            children: const [
+                                              Center(
+                                                child: Padding(
+                                                  padding: EdgeInsets.all(24.0),
+                                                  child: Text(
+                                                    'لا توجد متطلبات حالياً',
+                                                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : ListView(
+                                            physics: const AlwaysScrollableScrollPhysics(),
+                                            children: List.generate(
+                                              provider.requirementList.length,
+                                              (index) {
+                                                final item = provider.requirementList[index];
+                                                return RequirementWidget(
+                                                  title: item.name,
+                                                  onDelete: () {
+                                                    provider.deleteRequirement(index);
+                                                  },
+                                                  onEdit: () {
+                                                    showEditRequirementDialog(context, (id, requirement) {
+                                                      provider.editRequirement(id, requirement);
+                                                    }, item.id);
+                                                  },
+                                                  status: item.status,
+                                                );
+                                              },
+                                            ),
+                                          ),
                                   ),
                                   // Align(
                                   //   alignment: Alignment.bottomCenter,

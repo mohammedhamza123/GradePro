@@ -126,11 +126,27 @@ class _AdminTeacherListPageState extends State<AdminTeacherListPage> {
     return ListView(
       children: List.generate(displayList.length, (index) {
         final item = displayList[index];
-        return TeacherListItem(
-            imageLink: "",
-            firstName: item.user.firstName,
-            lastName: item.user.lastName,
-            userName: item.user.username);
+        return ListTile(
+          leading: item.user != null && item.user.firstName.isNotEmpty
+              ? CircleAvatar(
+                  backgroundImage: const AssetImage("assets/default_profile.jpg"),
+                )
+              : null,
+          title: Text('${item.user.firstName} ${item.user.lastName}'),
+          subtitle: Text(item.user.username),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('ممتحن'),
+              Switch(
+                value: item.isExaminer,
+                onChanged: (val) {
+                  provider.patchTeacherExaminer(item.id, val);
+                },
+              ),
+            ],
+          ),
+        );
       }),
     );
   }
@@ -317,13 +333,21 @@ class AdminTeacherAddPage extends StatelessWidget {
                           }
                         },
                       ),
+                      CheckboxListTile(
+                        title: const Text('ممتحن'),
+                        value: provider.isExaminer,
+                        onChanged: (val) {
+                          provider.isExaminer = val ?? false;
+                        },
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
                       !provider.isLoading
                           ? SizedBox(
                               height: 50,
                               child: ElevatedButton(
                                 onPressed: provider.canRegister
                                     ? () {
-                                        provider.register(true, null);
+                                        provider.register(true, provider.isExaminer);
                                       }
                                     : null,
                                 style: ButtonStyle(
@@ -452,6 +476,22 @@ class AdminTeacherEditPage extends StatelessWidget {
                                   provider.lastName.text = value;
                                 }
                               },
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                const Text('ممتحن'),
+                                Switch(
+                                  value: provider.teacher?.isExaminer ?? false,
+                                  onChanged: (val) async {
+                                    if (provider.teacher != null) {
+                                      await context.read<AdminTeacherProvider>().patchTeacherExaminer(provider.teacher!.id, val);
+                                      provider.teacher!.isExaminer = val;
+                                      provider.notifyListeners();
+                                    }
+                                  },
+                                ),
+                              ],
                             ),
                             !provider.isLoading
                                 ? Row(
