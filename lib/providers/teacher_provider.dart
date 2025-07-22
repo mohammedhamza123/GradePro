@@ -95,6 +95,38 @@ class TeacherProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<ProjectDetail> getProjectDetails(int projectId) async {
+    try {
+      // 1. Fetch the entire list of detailed projects from the server.
+      final projectDetailsList = await getProjectDetailsList();
+
+      // 2. Find the specific project with the matching ID from the list.
+      //    Using firstWhere is efficient for this.
+      final updatedProject = projectDetailsList.datum.firstWhere(
+            (p) => p.id == projectId,
+        // orElse is a safeguard in case the project is no longer in the list.
+        orElse: () => throw Exception('Project with ID $projectId not found after refresh.'),
+      );
+
+      // 3. Find the index of the old project data in the local list.
+      final index = _projectList.indexWhere((p) => p.id == projectId);
+      if (index != -1) {
+        // 4. Replace the old data with the fresh data.
+        _projectList[index] = updatedProject;
+        notifyListeners(); // Notify listeners that the local list has been updated.
+      }
+
+      // 5. Return the freshly fetched project.
+      return updatedProject;
+
+    } catch (e) {
+      // Rethrow the exception to be caught by the UI layer (_refreshData).
+      print('Could not refresh project data: $e');
+      throw Exception('Could not refresh project data.');
+    }
+  }
+
+
   Future<bool> loadProjects() async {
     final InternetService services = InternetService();
     if (!services.isAuthorized()) {
