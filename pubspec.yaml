@@ -128,6 +128,8 @@ flutter:
     - family: NotoNaskhArabic
       fonts:
         - asset: fonts/NotoNaskhArabic-Regular.ttf
+        - asset: fonts/Amiri-Bold.ttf
+        - asset: fonts/Amiri-Regular.ttf
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf

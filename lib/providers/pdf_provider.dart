@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gradpro/models/project_details_list.dart';
 import 'package:gradpro/models/project_list.dart';
 import 'package:pdf/pdf.dart' as pdf;
@@ -30,12 +31,15 @@ enum GradingRole { supervisor, examiner1, examiner2, notAllowed, alreadyGraded }
 class PdfProvider extends ChangeNotifier {
   // --- STATE ---
   bool _isLoading = false;
+
   bool get isLoading => _isLoading;
 
   GradingRole _currentRole = GradingRole.notAllowed;
+
   GradingRole get currentRole => _currentRole;
 
   List<EvaluationItem> _currentEvaluationItems = [];
+
   List<EvaluationItem> get currentEvaluationItems => _currentEvaluationItems;
 
   List<String> scores = [];
@@ -45,16 +49,25 @@ class PdfProvider extends ChangeNotifier {
 
   // --- PRIVATE DATA ---
   final List<EvaluationItem> _supervisorItems = [
-    EvaluationItem(section: 'Teamwork', detail: 'Meetings and Sessions', maxScore: 10),
-    EvaluationItem(section: 'Teamwork', detail: 'Attendance and Absence', maxScore: 10),
-    EvaluationItem(section: 'Teamwork', detail: 'Commitment to Deadlines', maxScore: 10),
+    EvaluationItem(
+        section: 'Teamwork', detail: 'Meetings and Sessions', maxScore: 10),
+    EvaluationItem(
+        section: 'Teamwork', detail: 'Attendance and Absence', maxScore: 10),
+    EvaluationItem(
+        section: 'Teamwork', detail: 'Commitment to Deadlines', maxScore: 10),
     // ... Add all other supervisor items here
   ];
 
   final List<EvaluationItem> _examinerItems = [
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'الالتزام بمواعيد الإنجاز', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'المساهمة والمشاركة والتفاعل', maxScore: 20),
-    EvaluationItem(section: 'Presentation & Seminar', detail: 'مهارات الإلقاء', maxScore: 30),
+    EvaluationItem(section: 'Presentation & Seminar',
+        detail: 'الالتزام بمواعيد الإنجاز',
+        maxScore: 20),
+    EvaluationItem(section: 'Presentation & Seminar',
+        detail: 'المساهمة والمشاركة والتفاعل',
+        maxScore: 20),
+    EvaluationItem(section: 'Presentation & Seminar',
+        detail: 'مهارات الإلقاء',
+        maxScore: 30),
     // ... Add all other examiner items here
   ];
 
@@ -114,7 +127,8 @@ class PdfProvider extends ChangeNotifier {
       final parsed = int.tryParse(scores[i]);
       final maxScore = _currentEvaluationItems[i].maxScore;
       if (parsed == null || parsed < 0 || parsed > maxScore) {
-        return 'الدرجة في البند رقم ${i + 1} غير صحيحة أو تتجاوز الحد الأقصى ($maxScore)';
+        return 'الدرجة في البند رقم ${i +
+            1} غير صحيحة أو تتجاوز الحد الأقصى ($maxScore)';
       }
     }
     return null;
@@ -162,7 +176,8 @@ class PdfProvider extends ChangeNotifier {
             progression: project.progression,
             deliveryDate: project.deliveryDate?.toIso8601String(),
             mainSuggestion: project.mainSuggestion?.id,
-            supervisorGrade: rawScore / 12.5, // 40 point scale
+            supervisorGrade: rawScore / 12.5,
+            // 40 point scale
             departmentHeadGrade: double.tryParse(headScore) ?? 0.0,
             coordinatorGrade: double.tryParse(coordinatorScore) ?? 0.0,
             pdfSupervisor: pdfUrl,
@@ -175,7 +190,8 @@ class PdfProvider extends ChangeNotifier {
             progression: project.progression,
             deliveryDate: project.deliveryDate?.toIso8601String(),
             mainSuggestion: project.mainSuggestion?.id,
-            firstGrading: rawScore / 20, // 25 point scale
+            firstGrading: rawScore / 20,
+            // 25 point scale
             pdfExaminer1: pdfUrl,
           );
           break;
@@ -186,7 +202,8 @@ class PdfProvider extends ChangeNotifier {
             progression: project.progression,
             deliveryDate: project.deliveryDate?.toIso8601String(),
             mainSuggestion: project.mainSuggestion?.id,
-            secondGrading: rawScore / 20, // 25 point scale
+            secondGrading: rawScore / 20,
+            // 25 point scale
             pdfExaminer2: pdfUrl,
           );
           break;
@@ -195,7 +212,6 @@ class PdfProvider extends ChangeNotifier {
       }
 
       return pdfUrl;
-
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -203,15 +219,172 @@ class PdfProvider extends ChangeNotifier {
   }
 
   // --- PRIVATE HELPERS ---
+  // --- PDF GENERATION IMPLEMENTATION ---
   Future<Uint8List> _generatePdf({
     required String supervisorUsername,
     required List<String> studentNames,
     required String projectTitle,
-    required String evaluationType,
+    required String evaluationType, // e.g., "Supervisor PDF" or "Examiner PDF"
   }) async {
-    // PDF generation logic remains the same.
     final pdfDoc = pw.Document();
-    // TODO:pdf generation logic
+
+    // Load the font that supports Arabic
+    // Ensure you have added the font to your assets/fonts folder and pubspec.yaml
+    final fontData = await rootBundle.load("fonts/Amiri-Regular.ttf");
+    final ttf = pw.Font.ttf(fontData);
+    final boldTtf = pw.Font.ttf(
+        (await rootBundle.load("fonts/Amiri-Bold.ttf")).buffer
+            .asByteData());
+
+
+    // Group evaluation items by section
+    final Map<String, List<Map<String, dynamic>>> groupedItems = {};
+    for (int i = 0; i < _currentEvaluationItems.length; i++) {
+      final item = _currentEvaluationItems[i];
+      if (!groupedItems.containsKey(item.section)) {
+        groupedItems[item.section] = [];
+      }
+      groupedItems[item.section]!.add({
+        'detail': item.detail,
+        'maxScore': item.maxScore,
+        'score': scores[i],
+        'note': notes[i],
+      });
+    }
+
+    pdfDoc.addPage(
+      pw.MultiPage(
+        pageFormat: pdf.PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(base: ttf, bold: boldTtf),
+        header: (context) => _buildHeader(context, evaluationType),
+        build: (context) =>
+        [
+          _buildProjectInfo(
+              projectTitle: projectTitle,
+              studentNames: studentNames,
+              supervisorName: supervisorUsername),
+          pw.SizedBox(height: 20),
+          _buildEvaluationTable(groupedItems),
+          pw.SizedBox(height: 20),
+          _buildTotalScore(),
+        ],
+      ),
+    );
+
     return pdfDoc.save();
+  }
+
+  pw.Widget _buildHeader(pw.Context context, String evaluationType) {
+    return pw.Container(
+      alignment: pw.Alignment.center,
+      margin: const pw.EdgeInsets.only(bottom: 20.0),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            'Faculty of Information Technology',
+            // Replace with your college name
+            style: pw.Theme
+                .of(context)
+                .defaultTextStyle
+                .copyWith(fontWeight: pw.FontWeight.bold, fontSize: 16),
+          ),
+          pw.Text(
+            evaluationType, // "Supervisor Evaluation" or "Examiner Evaluation"
+            style: pw.Theme
+                .of(context)
+                .defaultTextStyle
+                .copyWith(fontSize: 14),
+          ),
+          pw.Divider(),
+        ],
+      ),
+    );
+  }
+
+  pw.Widget _buildProjectInfo({required String projectTitle,
+    required List<String> studentNames,
+    required String supervisorName}) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text('Project Title: $projectTitle',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 5),
+        pw.Text('Student(s): ${studentNames.join(", ")}'),
+        pw.SizedBox(height: 5),
+        pw.Text('Evaluator: $supervisorName'),
+      ],
+    );
+  }
+
+  pw.Widget _buildEvaluationTable(Map<String, List<Map<String, dynamic>>> groupedItems) {
+    final tableHeaders = [
+      'Category',
+      'Evaluation Item',
+      'Max Score',
+      'Score',
+      'Notes'
+    ];
+
+    return pw.TableHelper.fromTextArray(
+      headers: tableHeaders,
+      headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+      cellAlignment: pw.Alignment.center,
+      // Remove textDirection here
+      data: _buildTableRows(groupedItems),
+      border: pw.TableBorder.all(),
+      columnWidths: {
+        0: const pw.FlexColumnWidth(1.5),
+        1: const pw.FlexColumnWidth(2.5),
+        2: const pw.FlexColumnWidth(1),
+        3: const pw.FlexColumnWidth(1),
+        4: const pw.FlexColumnWidth(2),
+      },
+    );
+  }
+
+  List<List<dynamic>> _buildTableRows(
+      Map<String, List<Map<String, dynamic>>> groupedItems) {
+    final List<List<dynamic>> rows = [];
+    groupedItems.forEach((section, items) {
+      // Add the first row for the section, with the category name
+      rows.add([
+        pw.Text(
+            section,
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold)
+        ),
+        pw.Text(items.first['detail']),
+        pw.Text(items.first['maxScore'].toString()),
+        pw.Text(items.first['score'].toString()),
+        pw.Text(items.first['note']),
+      ]);
+
+      // Add subsequent rows for the same section without the category name
+      for (int i = 1; i < items.length; i++) {
+        rows.add([
+          pw.Text(''), // Empty cell for the spanned category
+          pw.Text(items[i]['detail']),
+          pw.Text(items[i]['maxScore'].toString()),
+          pw.Text(items[i]['score'].toString()),
+          pw.Text(items[i]['note']),
+        ]);
+      }
+    });
+    return rows;
+  }
+
+  pw.Widget _buildTotalScore() {
+    return pw.Container(
+        alignment: pw.Alignment.centerRight,
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.end,
+          children: [
+            pw.Text(
+              'Total Score: ${calculateTotalScore()}',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
+            ),
+          ],
+        )
+    );
   }
 }
