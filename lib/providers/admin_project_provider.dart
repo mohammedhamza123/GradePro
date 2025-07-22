@@ -10,7 +10,7 @@ import '../models/suggestion_list.dart';
 
 class AdminProjectProvider extends ChangeNotifier {
   bool _done = false;
-
+  bool _refreshing = false;
   List<ProjectDetail> _filteredProjectList = [];
   List<StudentDetail> _studentsToAdd = [];
   ProjectDetail? _currentProject;
@@ -30,7 +30,7 @@ class AdminProjectProvider extends ChangeNotifier {
 
   bool get isProjectSelected => _isProjectSelected;
   bool get done => _done;
-
+  bool get refreshing => _refreshing;
   // Getters for current project, students to add, teacher to set
   ProjectDetail? get currentProject => _currentProject;
   List<StudentDetail> get studentsToAdd => _studentsToAdd;
@@ -388,11 +388,13 @@ class AdminProjectProvider extends ChangeNotifier {
 
   // Change suggestion status
   Future<void> changeSuggestionStatus(Suggestion s, String status) async {
-    print("project refreshed after status change");
+    _refreshing = true;
+    notifyListeners();
     await patchSuggestion(
         id: s.id, title: s.title, image: s.image, status: status);
-    print("project refreshed after status change");
-    await loadProjects(); // Refresh the project list after status change
-    notifyListeners(); // Notify listeners to update the UI
+     await refreshProjects();
+    _refreshing = false;
+    notifyListeners();
   }
+
 }
