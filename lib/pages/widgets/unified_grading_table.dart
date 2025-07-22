@@ -161,7 +161,7 @@ class _UnifiedGradingTableState extends State<UnifiedGradingTable> {
           children: [
             Text('المجموع: ',
                 style: TextStyle(fontWeight: FontWeight.bold)),
-            Text('${widget.totalScore} / 100',
+            Text('${widget.totalScore} / 500',
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),

@@ -33,10 +33,10 @@ class _GradingTableState extends State<GradingTable> {
     ExaminerGradeItem('مهارات الإلقاء', 30),
     ExaminerGradeItem('الوضوح والتسلسل المنطقي', 30),
     ExaminerGradeItem('استخدام الأدوات', 20),
-    ExaminerGradeItem('الإجابة على الأسئلة', 20),
+    ExaminerGradeItem('الإجابة على الأسئلة', 30),
     // فهم المشروع
     ExaminerGradeItem('المشكلة المراد حلها', 20),
-    ExaminerGradeItem('الإلمام بالمشكلة ودراسة الحالة', 20),
+    ExaminerGradeItem('الادبيات السابقة و دراسة الحالة', 20),
     ExaminerGradeItem('مجال وحدود المشروع', 20),
     ExaminerGradeItem('الأهداف والمزايا والفوائد', 20),
     ExaminerGradeItem('الأسلوب (Methodology)', 20),
@@ -45,7 +45,7 @@ class _GradingTableState extends State<GradingTable> {
     ExaminerGradeItem('تصميم الواجهات (Interfaces)', 30),
     ExaminerGradeItem('تصميم قواعد البيانات (Persistence)', 30),
     ExaminerGradeItem('تصميم الخوارزميات (Algorithms)', 30),
-    ExaminerGradeItem('الأمن والسلامة (Safety & Security)', 30),
+    ExaminerGradeItem('الأمن الامان (Safety & Security)', 30),
     // التقرير
     ExaminerGradeItem('الشكل', 20),
     ExaminerGradeItem('الكمال', 20),
@@ -110,7 +110,7 @@ class _GradingTableState extends State<GradingTable> {
     return Consumer<PdfProvider>(builder: (context, provider, _) {
       final isExaminer = provider.isExaminer;
       final isSupervisor =
-          widget.project?.teacher == teacherProvider.teacher?.id;
+          widget.project?.teacher?.id == teacherProvider.teacher?.id;
       if (isSupervisor) {
         if (project?.supervisorScore != null) {
           return Center(
@@ -400,7 +400,7 @@ class _GradingTableState extends State<GradingTable> {
                                 onPressed: () async {
                                   final teacherProvider =
                                       context.read<TeacherProvider?>();
-                                  String supervisorUsername = '';
+
                                    ProjectDetail? project;
                                   int? teacherId;
                                   if (teacherProvider != null &&
@@ -411,12 +411,14 @@ class _GradingTableState extends State<GradingTable> {
                                       teacherProvider.teacher != null) {
                                     teacherId = teacherProvider.teacher!.id;
                                   }
+                                  String supervisorUsername = "${project?.teacher?.user.firstName} ${project?.teacher?.user.lastName}";
                                   String projectTitle =
                                       projectTitleController.text;
                                   final evalType = evaluationType;
                                   String? pdfUrl;
                                   if (project != null && teacherId != null) {
-                                    if (project.teacher == teacherId) {
+                                    if (project.teacher?.id == teacherId) {
+                                      provider.setIsExaminer(false);
                                       double supervisorRaw = provider.scores
                                           .fold(
                                               0,
@@ -441,6 +443,8 @@ class _GradingTableState extends State<GradingTable> {
                                           studentNames: allStudentNames,
                                           projectTitle: projectTitle,
                                           evaluationType: evalType,
+                                          scores: provider.scores,
+                                          notes: provider.notes,
                                         ),
                                         supervisorRaw: supervisorRaw,
                                         headScore: headScore,
@@ -448,6 +452,7 @@ class _GradingTableState extends State<GradingTable> {
                                         project: project,
                                       );
                                     } else if (project.examiner1Raw == null) {
+                                      provider.setIsExaminer(true);
                                       double rawScore = provider.scores
                                           .fold(
                                               0,
@@ -466,11 +471,14 @@ class _GradingTableState extends State<GradingTable> {
                                           studentNames: allStudentNames,
                                           projectTitle: projectTitle,
                                           evaluationType: evalType,
+                                          scores: provider.scores,
+                                          notes: provider.notes,
                                         ),
                                         rawScore: rawScore,
                                         project: project,
                                       );
                                     } else if (project.examiner2Raw == null) {
+                                      provider.setIsExaminer(true);
                                       double rawScore = provider.scores
                                           .fold(
                                               0,
@@ -489,6 +497,8 @@ class _GradingTableState extends State<GradingTable> {
                                           studentNames: allStudentNames,
                                           projectTitle: projectTitle,
                                           evaluationType: evalType,
+                                          scores: provider.scores,
+                                          notes: provider.notes,
                                         ),
                                         rawScore: rawScore,
                                         project: project,
@@ -689,7 +699,8 @@ class _GradingTableState extends State<GradingTable> {
                               studentNames: allStudentNames,
                               projectTitle: projectTitle,
                               evaluationType: evalType,
-                              // Optionally pass examiner notes if needed
+                              scores: examinerGradeItems.map((item) => item.scoreController.text).toList(),
+                              notes: List.filled(examinerGradeItems.length, ''),
                             ),
                             rawScore: rawScore,
                             project: project,
@@ -701,7 +712,8 @@ class _GradingTableState extends State<GradingTable> {
                               studentNames: allStudentNames,
                               projectTitle: projectTitle,
                               evaluationType: evalType,
-                              // Optionally pass examiner notes if needed
+                              scores: examinerGradeItems.map((item) => item.scoreController.text).toList(),
+                              notes: List.filled(examinerGradeItems.length, ''),
                             ),
                             rawScore: rawScore,
                             project: project,

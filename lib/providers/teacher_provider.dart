@@ -113,7 +113,7 @@ class TeacherProvider extends ChangeNotifier {
 
   List<ProjectDetail> setTeacherProjects() {
     if (_projectList.isNotEmpty && teacher != null) {
-      return _projectList.where((element) => element.teacher == teacher!.id).toList();
+      return _projectList.where((element) => element.teacher?.id == teacher!.id).toList();
     } else {
       return [];
     }

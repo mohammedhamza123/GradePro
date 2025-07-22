@@ -173,64 +173,88 @@ class PdfProvider extends ChangeNotifier {
   List<EvaluationItem> examinerEvaluationItems = [
     EvaluationItem(
         section: 'Presentation & Seminar',
-        detail: 'Commitment to Deadlines',
+        detail: 'الالتزام بمواعيد الإنجاز',
         maxScore: 20),
     EvaluationItem(
         section: 'Presentation & Seminar',
-        detail: 'Contribution and Interaction',
+        detail: 'المساهمة والمشاركة والتفاعل',
         maxScore: 20),
     EvaluationItem(
         section: 'Presentation & Seminar',
-        detail: 'Presentation Skills',
+        detail: 'مهارات الإلقاء',
         maxScore: 30),
     EvaluationItem(
         section: 'Presentation & Seminar',
-        detail: 'Clarity and Logical Sequence',
+        detail: 'الوضوح والتسلسل المنطقي',
         maxScore: 30),
     EvaluationItem(
         section: 'Presentation & Seminar',
-        detail: 'Use of Tools',
+        detail: 'استخدام الأدوات',
         maxScore: 20),
     EvaluationItem(
         section: 'Presentation & Seminar',
-        detail: 'Answering Questions',
+        detail: 'الإجابة على الأسئلة',
         maxScore: 30),
     EvaluationItem(
         section: 'Project Understanding',
-        detail: 'Problem to Solve',
+        detail: 'المشكلة المراد حلها',
         maxScore: 20),
     EvaluationItem(
         section: 'Project Understanding',
-        detail: 'Literature Review and Case Study',
+        detail: 'الادبيات السابقة و دراسة الحالة',
         maxScore: 20),
     EvaluationItem(
         section: 'Project Understanding',
-        detail: 'Project Scope and Boundaries',
+        detail: 'مجال وحدود المشروع',
         maxScore: 20),
     EvaluationItem(
         section: 'Project Understanding',
-        detail: 'Objectives and Benefits',
+        detail: 'الأهداف والمزايا والفوائد',
         maxScore: 20),
     EvaluationItem(
-        section: 'Project Understanding', detail: 'Methodology', maxScore: 20),
-    EvaluationItem(
-        section: 'Project Design', detail: 'Architecture Design', maxScore: 30),
-    EvaluationItem(
-        section: 'Project Design', detail: 'Interfaces Design', maxScore: 30),
+        section: 'Project Understanding',
+        detail: 'الأسلوب (Methodology)',
+        maxScore: 20),
     EvaluationItem(
         section: 'Project Design',
-        detail: 'Database Design (Persistence)',
+        detail: 'التصميم الهيكلي (Architecture)',
         maxScore: 30),
     EvaluationItem(
-        section: 'Project Design', detail: 'Algorithms Design', maxScore: 30),
+        section: 'Project Design',
+        detail: 'تصميم الواجهات (Interfaces)',
+        maxScore: 30),
     EvaluationItem(
-        section: 'Project Design', detail: 'Safety & Security', maxScore: 30),
-    EvaluationItem(section: 'Report', detail: 'Appearance', maxScore: 20),
-    EvaluationItem(section: 'Report', detail: 'Perfection', maxScore: 20),
-    EvaluationItem(section: 'Report', detail: 'Quality', maxScore: 20),
+        section: 'Project Design',
+        detail: 'تصميم قواعد البيانات (Persistence)',
+        maxScore: 30),
     EvaluationItem(
-        section: 'Report', detail: 'Good Use of Tools', maxScore: 20),
-    EvaluationItem(section: 'Report', detail: 'Arabic Language', maxScore: 20),
+        section: 'Project Design',
+        detail: 'تصميم الخوارزميات (Algorithms)',
+        maxScore: 30),
+    EvaluationItem(
+        section: 'Project Design',
+        detail: 'الأمن الامان (Safety & Security)',
+        maxScore: 30),
+    EvaluationItem(
+        section: 'Report',
+        detail: 'الشكل',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Report',
+        detail: 'الكمال',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Report',
+        detail: 'الجودة',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Report',
+        detail: 'استخدام الجيد للأدوات',
+        maxScore: 20),
+    EvaluationItem(
+        section: 'Report',
+        detail: 'اللغة العربية',
+        maxScore: 20),
   ];
 
   // Getter للوصول إلى البنود حسب نوع المستخدم
@@ -322,6 +346,8 @@ class PdfProvider extends ChangeNotifier {
     required List<String> studentNames,
     required String projectTitle,
     required String evaluationType,
+    required List<String> scores, // جديد
+    required List<String> notes,  // جديد
   }) async {
     final pdfDoc = pw.Document();
 
@@ -474,36 +500,6 @@ class PdfProvider extends ChangeNotifier {
     return pdfDoc.save();
   }
 
-  Future<void> uploadPdf(Uint8List uint8listFile, int project) async {
-    try {
-      File tempFile = await createTemporaryFile(uint8listFile);
-      final fileResponse = await FileService().uploadFile(tempFile);
-
-      String? link;
-      if (fileResponse != null) {
-        link = fileResponse.data.downloadPage; // Use null-aware operator
-      } else {
-      }
-
-      patchProject(
-        id: project,
-        teacher: 0,
-        title: null,
-        image: link,
-        progression: null,
-        deliveryDate: "",
-        mainSuggestion: 0,
-      );
-    } catch (error) {
-    }
-    createTemporaryFile(uint8listFile).then((File file) {
-      // Temporary file creation is complete
-      // You can now use the 'file' object
-    }).catchError((error) {
-      // An error occurred during the temporary file creation process
-    });
-  }
-
   Future<void> uploadPdfFirstGrading(
       Uint8List uint8listFile, ProjectDetail project) async {
     try {
@@ -595,6 +591,8 @@ class PdfProvider extends ChangeNotifier {
         studentNames: [studentName],
         projectTitle: projectTitle,
         evaluationType: evaluationType,
+        scores: scores, // Pass scores
+        notes: notes,   // Pass notes
       );
       final tempFile = await createTemporaryFile(pdfBytes);
       final fileResponse = await FileService().uploadFile(tempFile);

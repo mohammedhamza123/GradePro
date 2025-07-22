@@ -8,8 +8,25 @@ import 'package:gradpro/pages/widgets/widget_buttom_navigator.dart';
 import 'package:gradpro/providers/teacher_provider.dart';
 import 'package:provider/provider.dart';
 
-class TeacherPage extends StatelessWidget {
+class TeacherPage extends StatefulWidget {
   const TeacherPage({super.key});
+
+  @override
+  State<TeacherPage> createState() => _TeacherPageState();
+}
+
+class _TeacherPageState extends State<TeacherPage> {
+  late Future<List<dynamic>> _initFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final provider = Provider.of<TeacherProvider>(context, listen: false);
+    _initFuture = Future.wait([
+      provider.loadTeacher(),
+      provider.loadProjects(),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,10 +95,10 @@ class TeacherPage extends StatelessWidget {
               ]),
               Expanded(
                 child: FutureBuilder(
-                  future: provider.loadTeacher(),
+                  future: _initFuture,
                   builder: (context, snapshot) {
-                    if (snapshot.hasData) {
-                      if (snapshot.data == true) {
+                    if (snapshot.connectionState == ConnectionState.done) {
+                      if (snapshot.hasData && snapshot.data?[0] == true && snapshot.data?[1] == true) {
                         return provider.selectedIndex == 0
                             ? const TeacherImportantDatesListWidget()
                             : provider.selectedIndex == 1
