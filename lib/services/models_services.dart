@@ -533,13 +533,19 @@ Future<Teacher> getTeacher(int id) async {
   return teacherListFromJson(body).teacher.first;
 }
 
-Future<Student> patchTeacher(int id, int? phoneNumber, bool? isExaminer) async {
+Future<Student> patchTeacher(int id, int? phoneNumber, bool? isExaminer,
+    List<int>? examinerProjects) async {
   Map<String, dynamic> request = <String, dynamic>{};
   if (phoneNumber != null) {
     request["phoneNumber"] = phoneNumber;
   }
   if (isExaminer != null) {
     request["isExaminer"] = isExaminer;
+  }
+  if (examinerProjects != null) {
+    if (examinerProjects.isNotEmpty) {
+      request["examiner_projects"] = examinerProjects;
+    }
   }
 
   http.Response response = await services.patch("$TEACHER$id/", request);

@@ -141,7 +141,7 @@ class AdminTeacherProvider extends ChangeNotifier {
 
   Future<void> patchTeacherExaminer(int teacherId, bool isExaminer) async {
     try {
-      await patchTeacher(teacherId, null, isExaminer);
+      await patchTeacher(teacherId, null, isExaminer,null);
       final index = _teacherList.indexWhere((t) => t.id == teacherId);
       if (index != -1) {
         _teacherList[index].isExaminer = isExaminer;

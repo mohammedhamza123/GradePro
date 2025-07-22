@@ -36,7 +36,7 @@ class RegisterProvider extends ChangeNotifier {
 
   String get success => _success;
 
-  Future<void> register(bool isTeacher,bool? isExaminer) async {
+  Future<void> register(bool isTeacher, bool? isExaminer) async {
     _isLoading = true;
     notifyListeners();
     int group = 2;
@@ -55,11 +55,11 @@ class RegisterProvider extends ChangeNotifier {
     try {
       if (isTeacher) {
         final res = await registerUser(user);
-        if(isExaminer != null){
+        if (isExaminer != null) {
           if (res != null) {
             final teacher = await getTeacher(res.id);
             if (teacher != null) {
-              await patchTeacher(teacher.id, null, isExaminer);
+              await patchTeacher(teacher.id, null, isExaminer, null);
             }
           }
         }
@@ -69,14 +69,16 @@ class RegisterProvider extends ChangeNotifier {
           // Save serial number and user ID for later use when student is approved
           if (serialNumber.text.trim().isNotEmpty) {
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('pending_serial_${res.id}', serialNumber.text.trim());
+            await prefs.setString(
+                'pending_serial_${res.id}', serialNumber.text.trim());
             await prefs.setInt('user_id_${userName.text}', res.id);
           }
-          
+
           // Save password temporarily for auto-login after approval
           final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('temp_password_${userName.text}', password.text);
-          
+          await prefs.setString(
+              'temp_password_${userName.text}', password.text);
+
           // Try to get student - this might fail if student is not approved yet
           try {
             final std = await getStudent(res.id);
@@ -93,7 +95,7 @@ class RegisterProvider extends ChangeNotifier {
           // If student is not approved yet, serial number will be set after approval
         }
       }
-      
+
       // Clear form
       email.text = '';
       password.text = "";
@@ -104,11 +106,12 @@ class RegisterProvider extends ChangeNotifier {
       serialNumber.text = "";
       _isExaminer = false;
       _isLoading = false;
-      _success = "تم التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة قبل تفعيل الحساب.";
+      _success =
+          "تم التسجيل بنجاح! سيتم مراجعة طلبك من قبل الإدارة قبل تفعيل الحساب.";
       _error = "";
       _canRegister = false;
       notifyListeners();
-      
+
       // Navigate to pending approval page
       // Note: Navigation will be handled in the UI layer
     } catch (e) {

@@ -382,7 +382,18 @@ class AdminProjectProvider extends ChangeNotifier {
 
   // Placeholder for assigning examiner to project (to be implemented by user)
   Future<bool> setExaminerToProject() async {
-    // TODO: Implement API call to assign examiner to project
+    if (examinerToSet != null && currentProject != null) {
+      try {
+        if (currentProject != null && examinerToSet != null) {
+          _examinerDetail!.examinedProjects.add(currentProject!.id);
+          await patchTeacher(
+              examinerToSet!.id, null, null, _examinerDetail!.examinedProjects);
+          return true;
+        }
+      } catch (e) {
+        return false;
+      }
+    }
     return false;
   }
 
@@ -392,9 +403,8 @@ class AdminProjectProvider extends ChangeNotifier {
     notifyListeners();
     await patchSuggestion(
         id: s.id, title: s.title, image: s.image, status: status);
-     await refreshProjects();
+    await refreshProjects();
     _refreshing = false;
     notifyListeners();
   }
-
 }
